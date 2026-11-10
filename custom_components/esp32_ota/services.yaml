@@ -1,0 +1,28 @@
+update:
+  name: Start firmware update
+  description: Send an OTA request to a selected ESP32 over MQTT.
+  fields:
+    device_id:
+      required: true
+      selector:
+        text:
+    url:
+      required: true
+      selector:
+        text:
+    sha256:
+      required: true
+      selector:
+        text:
+    token:
+      required: false
+      selector:
+        text:
+save_token:
+  name: Save GitHub token
+  description: Save or replace the token in Home Assistant secrets.yaml.
+  fields:
+    token:
+      required: true
+      selector:
+        text:
