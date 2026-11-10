@@ -1,0 +1,12 @@
+{
+  "domain": "esp32_ota",
+  "name": "ESP32 OTA Manager",
+  "version": "0.1.0",
+  "documentation": "https://github.com/lavrenovalexsandr-cmyk/esp32-mqtt-ha-integration",
+  "dependencies": [
+    "mqtt"
+  ],
+  "codeowners": [],
+  "iot_class": "local_push",
+  "config_flow": true
+}
