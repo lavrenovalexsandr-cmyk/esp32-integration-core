@@ -113,6 +113,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             json.dumps(command, separators=(",", ":")), qos=1, retain=False
         )
 
+    async def publish_device_command(call: ServiceCall, command: str) -> None:
+        device_id = str(call.data["device_id"]).upper()
+        if not ID_RE.fullmatch(device_id):
+            raise HomeAssistantError("Некорректный ID ESP32.")
+        if device_id not in data[DATA_DEVICES]:
+            raise HomeAssistantError("ESP32 не обнаружена. Проверьте MQTT и подключение устройства.")
+        topic = f"esp32/{device_id}/system/{command}"
+        await mqtt.async_publish(hass, topic, "1", qos=1, retain=False)
+        _LOGGER.warning("Sent %s command to ESP32 %s", command, device_id)
+
+    async def handle_restart(call: ServiceCall) -> None:
+        await publish_device_command(call, "restart")
+
+    async def handle_factory_reset(call: ServiceCall) -> None:
+        await publish_device_command(call, "factory_reset")
+
     async def handle_save_token(call: ServiceCall) -> None:
         await _save_token(hass, str(call.data.get("token", "")).strip())
 
@@ -120,6 +136,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         vol.Required("device_id"): str, vol.Required("url"): str, vol.Required("sha256"): str,
         vol.Optional("token", default=""): str,
     }))
+    device_schema = vol.Schema({vol.Required("device_id"): str})
+    hass.services.async_register(DOMAIN, "restart", handle_restart, schema=device_schema)
+    hass.services.async_register(DOMAIN, "factory_reset", handle_factory_reset, schema=device_schema)
     hass.services.async_register(DOMAIN, "save_token", handle_save_token,
                                  schema=vol.Schema({vol.Required("token"): str}))
     return True
@@ -183,4 +202,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     hass.services.async_remove(DOMAIN, "update")
     hass.services.async_remove(DOMAIN, "save_token")
+    hass.services.async_remove(DOMAIN, "restart")
+    hass.services.async_remove(DOMAIN, "factory_reset")
     return True
