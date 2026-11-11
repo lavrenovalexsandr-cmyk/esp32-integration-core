@@ -26,3 +26,20 @@ save_token:
       required: true
       selector:
         text:
+
+restart:
+  name: Перезагрузить ESP32
+  description: Отправить выбранному устройству команду обычной перезагрузки.
+  fields:
+    device_id:
+      required: true
+      selector:
+        text:
+factory_reset:
+  name: Полный сброс ESP32
+  description: Удалить пользовательские настройки выбранного устройства.
+  fields:
+    device_id:
+      required: true
+      selector:
+        text:
