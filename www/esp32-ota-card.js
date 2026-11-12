@@ -29,7 +29,7 @@ class Esp32OtaCard extends HTMLElement {
     const states = {
       online: {label: "На связи", icon: "mdi:check-circle", color: "success", detail: "Устройство подключено к MQTT."},
       downloading: {label: "Загрузка прошивки", icon: "mdi:download", color: "active", detail: "Получение файла прошивки по HTTPS."},
-      verifying: {label: "Проверка SHA-256", icon: "mdi:shield-check", color: "active", detail: "Сверка контрольной суммы прошивки."},
+      verifying: {label: "Подготовка образа", icon: "mdi:package-check", color: "active", detail: "Подготовка образа прошивки к установке."},
       installing: {label: "Проверка образа", icon: "mdi:package-check", color: "active", detail: "Проверка совместимости образа ESP-IDF."},
       rebooting: {label: "Перезагрузка", icon: "mdi:restart", color: "active", detail: "Прошивка записана. Устройство перезагружается."},
       success: {label: "Обновление успешно", icon: "mdi:check-decagram", color: "success", detail: "Новая прошивка успешно запущена и проверена."},
@@ -52,7 +52,7 @@ class Esp32OtaCard extends HTMLElement {
     if (device) this._selected = device.id;
 
     const previous = {};
-    for (const id of ["url", "sha", "token"]) {
+    for (const id of ["url", "token"]) {
       const input = this.querySelector("#" + id);
       if (input) previous[id] = input.value;
     }
@@ -152,7 +152,7 @@ class Esp32OtaCard extends HTMLElement {
         return this.message("Выберите устройство и заполните URL и SHA-256.");
       }
       try {
-        await this._hass.callService("esp32_ota", "update", {device_id, url, sha256, token});
+        await this._hass.callService("esp32_ota", "update", {device_id, url, token});
         this.querySelector("#token").value = "";
         this.message("Команда отправлена. Ожидаем статус от ESP32…");
       } catch (error) {
