@@ -16,6 +16,10 @@ The Lovelace cards have been moved to a separate repository: [esp32-card](https:
 - ESP32 firmware implementing the matching MQTT device-identity and OTA topics.
 - Restart and factory-reset controls additionally require firmware support for the `system/restart` and `system/factory_reset` topics.
 
+## Device availability
+
+The integration tracks MQTT availability separately through `esp32/<DEVICE_ID>/availability` (retained `online` / `offline`). OTA status is not used to determine device availability. If the ESP32 disconnects unexpectedly, the broker publishes retained `offline` through the MQTT Last Will configured by the Core `platform_ha` component. The OTA card displays “Offline” regardless of the last update result.
+
 ## Installation through HACS
 
 1. Open **HACS → Integrations**.
