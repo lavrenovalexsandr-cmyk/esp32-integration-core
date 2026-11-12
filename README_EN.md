@@ -60,7 +60,7 @@ The integration provides the following services in the `esp32_ota` domain:
 
 | Service | Parameters | Description |
 |---|---|---|
-| `esp32_ota.update` | `device_id`, `url`, `sha256`, optional `token` | Start an OTA update on the selected device |
+| `esp32_ota.update` | `device_id`, `url`, optional `token` | Start an OTA update on the selected device |
 | `esp32_ota.restart` | `device_id` | Request a normal reboot of the selected ESP32 |
 | `esp32_ota.factory_reset` | `device_id` | Request a factory reset of the selected ESP32 |
 | `esp32_ota.save_token` | `token` | Save the GitHub token |
@@ -86,7 +86,7 @@ OTA command (QoS 1, not retained):
 - Payload:
 
 ```json
-{"url":"https://.../firmware.bin","sha256":"<64 hex>","github_token":"<optional>"}
+{"url":"https://.../firmware.bin","github_token":"<optional>"}
 ```
 
 OTA status:
@@ -95,7 +95,7 @@ OTA status:
 - Example payload:
 
 ```json
-{"status":"online|downloading|verifying|installing|rebooting|success|error","progress":0,"message":"..."}
+{"status":"online|downloading|installing|rebooting|success|error","progress":0,"message":"..."}
 ```
 
 ### Device-control commands
@@ -111,7 +111,7 @@ A normal restart must not modify device settings. A factory reset must be handle
 
 Successful service execution confirms that the command was published to MQTT; it does not confirm that the device has completed the restart or factory reset.
 
-The firmware-side OTA receiver is maintained in the ESP32 firmware project: [esp32_mqtt_xiaomi_lywsd03](https://github.com/lavrenovalexsandr-cmyk/esp32_mqtt_xiaomi_lywsd03). It downloads firmware over HTTPS, verifies SHA-256, writes the image to the inactive OTA partition, and reports update status over MQTT.
+The firmware-side OTA receiver is maintained in the ESP32 firmware project: [esp32_mqtt_xiaomi_lywsd03](https://github.com/lavrenovalexsandr-cmyk/esp32_mqtt_xiaomi_lywsd03). It downloads firmware over HTTPS, writes the image to the inactive OTA partition, and reports update status over MQTT.
 
 ## GitHub token for private releases
 
