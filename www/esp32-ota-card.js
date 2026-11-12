@@ -109,8 +109,6 @@ class Esp32OtaCard extends HTMLElement {
 
           <label class="ota-label" for="url">URL файла прошивки (.bin)</label>
           <input id="url" class="ota-input" type="url" placeholder="https://github.com/.../firmware.bin">
-          <label class="ota-label" for="sha">SHA-256</label>
-          <input id="sha" class="ota-input" type="text" placeholder="64 шестнадцатеричных символа">
           <label class="ota-label" for="token">GitHub token (необязательно)</label>
           <input id="token" class="ota-input" type="password" autocomplete="new-password" placeholder="Пустое поле — использовать сохранённый токен">
           <div class="ota-actions">
@@ -121,7 +119,7 @@ class Esp32OtaCard extends HTMLElement {
         </div>
       </ha-card>`;
 
-    for (const id of ["url", "sha", "token"]) {
+    for (const id of ["url", "token"]) {
       const input = this.querySelector("#" + id);
       if (input && previous[id] !== undefined) input.value = previous[id];
     }
@@ -146,10 +144,9 @@ class Esp32OtaCard extends HTMLElement {
     this.querySelector("#update").addEventListener("click", async () => {
       const device_id = this.querySelector("#device").value;
       const url = this.querySelector("#url").value.trim();
-      const sha256 = this.querySelector("#sha").value.trim();
       const token = this.querySelector("#token").value;
-      if (!device_id || !url || !sha256) {
-        return this.message("Выберите устройство и заполните URL и SHA-256.");
+      if (!device_id || !url) {
+        return this.message("Выберите устройство и заполните URL файла прошивки.");
       }
       try {
         await this._hass.callService("esp32_ota", "update", {device_id, url, token});
