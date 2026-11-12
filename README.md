@@ -60,7 +60,7 @@ title: Управление ESP32
 
 | Сервис | Параметры | Назначение |
 |---|---|---|
-| `esp32_ota.update` | `device_id`, `url`, `sha256`, необязательно `token` | Запуск OTA-обновления выбранного устройства |
+| `esp32_ota.update` | `device_id`, `url`, необязательно `token` | Запуск OTA-обновления выбранного устройства |
 | `esp32_ota.restart` | `device_id` | Обычная перезагрузка выбранного ESP32 |
 | `esp32_ota.factory_reset` | `device_id` | Полный сброс пользовательских настроек выбранного ESP32 |
 | `esp32_ota.save_token` | `token` | Сохранение GitHub-токена |
@@ -86,7 +86,7 @@ title: Управление ESP32
 - Содержимое:
 
 ```json
-{"url":"https://.../firmware.bin","sha256":"<64 hex>","github_token":"<optional>"}
+{"url":"https://.../firmware.bin","github_token":"<optional>"}
 ```
 
 Статус OTA-обновления:
@@ -95,7 +95,7 @@ title: Управление ESP32
 - Пример содержимого:
 
 ```json
-{"status":"online|downloading|verifying|installing|rebooting|success|error","progress":0,"message":"..."}
+{"status":"online|downloading|installing|rebooting|success|error","progress":0,"message":"..."}
 ```
 
 ### Команды управления устройством
@@ -111,7 +111,7 @@ title: Управление ESP32
 
 При успешной отправке сервис подтверждает публикацию команды в MQTT; это не является подтверждением завершения перезагрузки или сброса самим устройством.
 
-Принимающая часть OTA на стороне прошивки поддерживается в отдельном проекте ESP32: [esp32_mqtt_xiaomi_lywsd03](https://github.com/lavrenovalexsandr-cmyk/esp32_mqtt_xiaomi_lywsd03). Прошивка загружает файл по HTTPS, проверяет SHA-256, записывает его в неактивный OTA-раздел и передаёт состояние обновления через MQTT.
+Принимающая часть OTA на стороне прошивки поддерживается в отдельном проекте ESP32: [esp32_mqtt_xiaomi_lywsd03](https://github.com/lavrenovalexsandr-cmyk/esp32_mqtt_xiaomi_lywsd03). Прошивка загружает файл по HTTPS, записывает его в неактивный OTA-раздел и передаёт состояние обновления через MQTT.
 
 ## GitHub-токен для приватных релизов
 
