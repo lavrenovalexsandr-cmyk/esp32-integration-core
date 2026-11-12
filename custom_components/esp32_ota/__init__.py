@@ -46,7 +46,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     async def update_device(device_id: str, values: dict[str, Any]) -> None:
         device = data[DATA_DEVICES].setdefault(device_id, {
-            "id": device_id, "name": f"ESP32-{device_id[-6:]}", "model": "ESP32"
+            "id": device_id, "name": f"ESP32-{device_id[-6:]}", "model": "ESP32",
+            "available": False,
         })
         device.update(values)
         async_dispatcher_send(hass, signal, device_id)
@@ -64,9 +65,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             model = str(payload.get("model", "ESP32"))
             if not ID_RE.fullmatch(device_id) or not name:
                 return
-            await update_device(device_id, {"name": name[:64], "model": model[:64], "available": True})
+            await update_device(device_id, {"name": name[:64], "model": model[:64]})
         except (ValueError, TypeError, AttributeError):
             _LOGGER.warning("Ignoring invalid ESP32 identity message")
+
+    async def availability_message(msg: mqtt.ReceiveMessage) -> None:
+        match = re.fullmatch(r"esp32/([0-9A-Fa-f]{12})/availability", msg.topic)
+        if not match:
+            return
+        payload = str(msg.payload).strip().lower()
+        if payload not in ("online", "offline"):
+            _LOGGER.warning("Ignoring invalid ESP32 availability payload")
+            return
+        await update_device(match.group(1).upper(), {"available": payload == "online"})
 
     async def status_message(msg: mqtt.ReceiveMessage) -> None:
         match = re.fullmatch(r"esp32/([0-9A-Fa-f]{12})/ota/status", msg.topic)
@@ -87,6 +98,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     data[DATA_UNSUB] = [
         await mqtt.async_subscribe(hass, IDENTITY_TOPIC, identity_message, qos=1),
+        await mqtt.async_subscribe(hass, "esp32/+/availability", availability_message, qos=1),
         await mqtt.async_subscribe(hass, OTA_STATUS_TOPIC, status_message, qos=1),
     ]
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
