@@ -2,13 +2,13 @@
 
 # ESP32 OTA Manager для Home Assistant
 
-Пользовательская интеграция Home Assistant и Lovelace-карточки для обнаружения ESP32-устройств через MQTT, отображения их состояния, управления OTA-обновлением прошивки, перезагрузкой и полным сбросом настроек.
+Пользовательская интеграция Home Assistant для обнаружения ESP32-устройств через MQTT, отображения их состояния и управления OTA-обновлением прошивки, перезагрузкой и полным сбросом настроек.
 
 ## Содержимое репозитория
 
 - `custom_components/esp32_ota` — интеграция Home Assistant и сервисы управления устройствами.
-- `www/esp32-ota-card.js` — Lovelace-карточка для OTA-обновлений и отображения текущего состояния устройств.
-- `www/esp32-device-control-card.js` — отдельная Lovelace-карточка для перезагрузки и полного сброса ESP32.
+
+Lovelace-карточки вынесены в отдельный репозиторий: [esp32-card](https://github.com/lavrenovalexsandr-cmyk/esp32-card).
 
 ## Требования
 
@@ -21,38 +21,7 @@
 1. Скопируйте каталог `custom_components/esp32_ota` в `<HA config>/custom_components/esp32_ota`.
 2. Перезапустите Home Assistant.
 3. Откройте **Настройки → Устройства и службы → Добавить интеграцию** и добавьте **ESP32 OTA Manager**.
-4. Скопируйте оба файла из каталога `www` в `<HA config>/www/`:
-   - `esp32-ota-card.js`
-   - `esp32-device-control-card.js`
-5. Добавьте оба ресурса Lovelace, указав тип **JavaScript module**:
-
-```yaml
-resources:
-  - url: /local/esp32-ota-card.js
-    type: module
-  - url: /local/esp32-device-control-card.js
-    type: module
-```
-
-6. Добавьте OTA-карточку вручную:
-
-```yaml
-type: custom:esp32-ota-card
-title: ESP32 firmware updates
-```
-
-7. Для управления устройствами добавьте отдельную карточку:
-
-```yaml
-type: custom:esp32-device-control-card
-title: Управление ESP32
-```
-
-Карточка управления автоматически формирует список обнаруженных ESP32 по данным сущностей интеграции. Выберите устройство и нажмите нужную кнопку:
-- **Перезагрузка** — запрашивает обычную перезагрузку выбранного ESP32.
-- **Полный сброс** — запрашивает Factory Reset. Перед отправкой команда требует два подтверждения.
-
-Карточки независимы друг от друга: их можно разместить на одной или разных Lovelace-панелях.
+4. Установите Lovelace-карточки из отдельного репозитория [esp32-card](https://github.com/lavrenovalexsandr-cmyk/esp32-card).
 
 ## Сервисы Home Assistant
 
