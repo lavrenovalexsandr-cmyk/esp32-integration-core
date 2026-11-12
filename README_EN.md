@@ -118,7 +118,3 @@ The firmware-side OTA receiver is maintained in the ESP32 firmware project: [esp
 The OTA card accepts an optional GitHub token. The integration can save it under `esp32_ota_github_token` in Home Assistant's `secrets.yaml`. Existing lines and comments are preserved, and the file is written atomically with owner-only permissions. A token entered directly in the update form overrides the saved token for that request.
 
 Tokens are sent only to GitHub API endpoints; they must not be forwarded to external CDN hosts.
-
-## Firmware integrity
-
-Always provide the SHA-256 digest of the exact firmware binary being installed. The ESP32 firmware must verify the digest before activating the new OTA slot.
