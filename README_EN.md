@@ -2,13 +2,13 @@
 
 # ESP32 OTA Manager for Home Assistant
 
-Home Assistant custom integration and Lovelace cards for discovering ESP32 devices over MQTT, displaying their status, managing OTA firmware updates, restarting devices, and requesting a factory reset.
+A Home Assistant custom integration for discovering ESP32 devices over MQTT, displaying their status, and managing OTA firmware updates, device restarts, and factory resets.
 
 ## Repository contents
 
 - `custom_components/esp32_ota` — Home Assistant integration and device-control services.
-- `www/esp32-ota-card.js` — Lovelace card for OTA updates and live device status.
-- `www/esp32-device-control-card.js` — standalone Lovelace card for restarting an ESP32 or requesting a factory reset.
+
+The Lovelace cards have been moved to a separate repository: [esp32-card](https://github.com/lavrenovalexsandr-cmyk/esp32-card).
 
 ## Requirements
 
@@ -21,38 +21,7 @@ Home Assistant custom integration and Lovelace cards for discovering ESP32 devic
 1. Copy `custom_components/esp32_ota` into `<HA config>/custom_components/esp32_ota`.
 2. Restart Home Assistant.
 3. Add **ESP32 OTA Manager** from Settings → Devices & services → Add integration.
-4. Copy both files from the repository's `www` directory into `<HA config>/www/`:
-   - `esp32-ota-card.js`
-   - `esp32-device-control-card.js`
-5. Add both Lovelace resources as **JavaScript modules**:
-
-```yaml
-resources:
-  - url: /local/esp32-ota-card.js
-    type: module
-  - url: /local/esp32-device-control-card.js
-    type: module
-```
-
-6. Add the OTA card manually:
-
-```yaml
-type: custom:esp32-ota-card
-title: ESP32 firmware updates
-```
-
-7. Add the separate device-control card:
-
-```yaml
-type: custom:esp32-device-control-card
-title: ESP32 Device Control
-```
-
-The control card automatically builds its device list from ESP32 devices discovered by the integration. Select a device and choose an action:
-- **Restart** requests a normal reboot of the selected ESP32.
-- **Factory Reset** requests a factory reset. Two confirmation dialogs are displayed before the command is sent.
-
-The cards are independent and can be placed on the same or on separate Lovelace dashboards.
+4. Install the Lovelace cards from the separate [esp32-card](https://github.com/lavrenovalexsandr-cmyk/esp32-card) repository.
 
 ## Home Assistant services
 
