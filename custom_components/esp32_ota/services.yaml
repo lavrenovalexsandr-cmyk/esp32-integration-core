@@ -10,10 +10,6 @@ update:
       required: true
       selector:
         text:
-    sha256:
-      required: true
-      selector:
-        text:
     token:
       required: false
       selector:
