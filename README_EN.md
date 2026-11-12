@@ -16,12 +16,23 @@ The Lovelace cards have been moved to a separate repository: [esp32-card](https:
 - ESP32 firmware implementing the matching MQTT device-identity and OTA topics.
 - Restart and factory-reset controls additionally require firmware support for the `system/restart` and `system/factory_reset` topics.
 
-## Installation
+## Installation through HACS
 
-1. Copy `custom_components/esp32_ota` into `<HA config>/custom_components/esp32_ota`.
-2. Restart Home Assistant.
-3. Add **ESP32 OTA Manager** from Settings → Devices & services → Add integration.
-4. Install the Lovelace cards from the separate [esp32-card](https://github.com/lavrenovalexsandr-cmyk/esp32-card) repository.
+1. Open **HACS → Integrations**.
+2. Open the menu in the upper-right corner and select **Custom repositories**.
+3. Add this repository:
+   `https://github.com/lavrenovalexsandr-cmyk/esp32-mqtt-ha-integration`
+4. Select **Integration** as the category and confirm.
+5. Find **ESP32 OTA Manager** in HACS and install it.
+6. Restart Home Assistant.
+7. Go to **Settings → Devices & services → Add integration** and add **ESP32 OTA Manager**.
+8. Install the Lovelace cards separately from the [esp32-card](https://github.com/lavrenovalexsandr-cmyk/esp32-card) repository.
+
+HACS installs the integration files into `custom_components/esp32_ota`. Future versions can be updated directly from HACS.
+
+### Manual installation
+
+If you do not use HACS, copy `custom_components/esp32_ota` into `<HA config>/custom_components/esp32_ota`, restart Home Assistant, and add the integration from **Settings → Devices & services → Add integration**.
 
 ## Home Assistant services
 
