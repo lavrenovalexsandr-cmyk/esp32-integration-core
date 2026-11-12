@@ -94,18 +94,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def handle_update(call: ServiceCall) -> None:
         device_id = str(call.data["device_id"]).upper()
         url = str(call.data["url"]).strip()
-        checksum = str(call.data["sha256"]).lower().strip()
         token = str(call.data.get("token", "")).strip()
         if device_id not in data[DATA_DEVICES]:
             raise HomeAssistantError("ESP32 не обнаружена. Проверьте MQTT и подключение устройства.")
         if not URL_RE.fullmatch(url):
             raise HomeAssistantError("Укажите прямой HTTPS URL файла прошивки с расширением .bin.")
-        if not re.fullmatch(r"[0-9a-f]{64}", checksum):
-            raise HomeAssistantError("Для OTA обязателен SHA-256 из 64 шестнадцатеричных символов.")
         if token:
             await _save_token(hass, token)
         stored_token = token or await _read_token(hass)
-        command = {"url": url, "sha256": checksum}
+        command = {"url": url}
         if stored_token:
             command["github_token"] = stored_token
         await mqtt.async_publish(
@@ -133,7 +130,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await _save_token(hass, str(call.data.get("token", "")).strip())
 
     hass.services.async_register(DOMAIN, "update", handle_update, schema=vol.Schema({
-        vol.Required("device_id"): str, vol.Required("url"): str, vol.Required("sha256"): str,
+        vol.Required("device_id"): str, vol.Required("url"): str,
         vol.Optional("token", default=""): str,
     }))
     device_schema = vol.Schema({vol.Required("device_id"): str})
