@@ -25,7 +25,7 @@ The integration tracks MQTT availability separately through `esp32/<DEVICE_ID>/a
 1. Open **HACS → Integrations**.
 2. Open the menu in the upper-right corner and select **Custom repositories**.
 3. Add this repository:
-   `https://github.com/lavrenovalexsandr-cmyk/esp32-mqtt-ha-integration`
+   `https://github.com/lavrenovalexsandr-cmyk/esp32-integration-core`
 4. Select **Integration** as the category and confirm.
 5. Find **ESP32 OTA Manager** in HACS and install it.
 6. Restart Home Assistant.
@@ -95,7 +95,7 @@ A normal restart must not modify device settings. A factory reset must be handle
 
 Successful service execution confirms that the command was published to MQTT; it does not confirm that the device has completed the restart or factory reset.
 
-The firmware-side OTA receiver is maintained in the ESP32 firmware project: [esp32_mqtt_xiaomi_lywsd03](https://github.com/lavrenovalexsandr-cmyk/esp32_mqtt_xiaomi_lywsd03). It downloads firmware over HTTPS, writes the image to the inactive OTA partition, and reports update status over MQTT.
+The firmware-side OTA receiver is maintained in the ESP32 firmware project: [esp32_mqtt_xiaomi_lywsd03](https://github.com/lavrenovalexsandr-cmyk/esp32-firmware-xiaomi-lywsd03). It downloads firmware over HTTPS, writes the image to the inactive OTA partition, and reports update status over MQTT.
 
 ## GitHub token for private releases
 
