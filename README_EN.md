@@ -28,7 +28,7 @@ identifiers={("esp32", device_id)}
 - `device_id` is the stable gateway ID from MQTT identity.
 - The gateway name comes from the MQTT identity `name` field; the model comes from `model`. These values must be consistent across integrations.
 
-**Implementation task:** `esp32_ota` currently uses `identifiers={(DOMAIN, device_id)}`, where `DOMAIN = "esp32_ota"`. Migrate it to `("esp32", device_id)` and verify migration of already-registered devices so HA does not create duplicates. The integration and service domain `esp32_ota` remains unchanged.
+**Migration in this branch:** on the first MQTT message from a gateway, the integration automatically replaces the legacy identifier with the shared one while preserving the existing device entry and its entities. If the shared identifier already belongs to a different HA device entry, the automatic change is skipped and an error is logged; such duplicates must not be merged blindly. Update `esp32_ota` before installing/updating other integrations that use the new namespace. The integration and service domain `esp32_ota` remains unchanged.
 
 Other ESP32 integrations must use the same identifier and obtain identity directly from the shared MQTT contract. They must not import `esp32_ota` code or require it to be installed. Integrations can independently add their entities to the same gateway device.
 
