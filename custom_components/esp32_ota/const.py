@@ -1,4 +1,5 @@
 DOMAIN = "esp32_ota"
+DEVICE_IDENTIFIER_NAMESPACE = "esp32"
 PLATFORMS = ["sensor"]
 IDENTITY_TOPIC = "esp32/+/device/info"
 OTA_STATUS_TOPIC = "esp32/+/ota/status"

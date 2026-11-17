@@ -8,7 +8,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import DEVICE_IDENTIFIER_NAMESPACE, DOMAIN
 
 
 async def async_setup_entry(
@@ -49,7 +49,7 @@ class Esp32OtaSensor(SensorEntity):
     def device_info(self) -> DeviceInfo:
         device = self.hass.data[DOMAIN][self.entry.entry_id]["devices"].get(self.device_id, {})
         return DeviceInfo(
-            identifiers={(DOMAIN, self.device_id)},
+            identifiers={(DEVICE_IDENTIFIER_NAMESPACE, self.device_id)},
             name=device.get("name", f"ESP32-{self.device_id[-6:]}"),
             manufacturer="Espressif",
             model=device.get("model", "ESP32"),
