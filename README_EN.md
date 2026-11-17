@@ -16,6 +16,22 @@ The Lovelace cards have been moved to a separate repository: [esp32-card](https:
 - ESP32 firmware implementing the matching MQTT device-identity and OTA topics.
 - Restart and factory-reset controls additionally require firmware support for the `system/restart` and `system/factory_reset` topics.
 
+## Gateway identity in Home Assistant
+
+All ESP32 integrations use the same gateway identifier in the Home Assistant Device Registry:
+
+```python
+identifiers={("esp32", device_id)}
+```
+
+- `esp32` is the platform-wide ESP32 namespace, not an integration-specific domain.
+- `device_id` is the stable gateway ID from MQTT identity.
+- The gateway name comes from the MQTT identity `name` field; the model comes from `model`. These values must be consistent across integrations.
+
+**Implementation task:** `esp32_ota` currently uses `identifiers={(DOMAIN, device_id)}`, where `DOMAIN = "esp32_ota"`. Migrate it to `("esp32", device_id)` and verify migration of already-registered devices so HA does not create duplicates. The integration and service domain `esp32_ota` remains unchanged.
+
+Other ESP32 integrations must use the same identifier and obtain identity directly from the shared MQTT contract. They must not import `esp32_ota` code or require it to be installed. Integrations can independently add their entities to the same gateway device.
+
 ## Device availability
 
 The integration tracks MQTT availability separately through `esp32/<DEVICE_ID>/availability` (retained `online` / `offline`). OTA status is not used to determine device availability. If the ESP32 disconnects unexpectedly, the broker publishes retained `offline` through the MQTT Last Will configured by the Core `platform_ha` component. The OTA card displays “Offline” regardless of the last update result.
