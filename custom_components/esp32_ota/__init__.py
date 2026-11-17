@@ -15,9 +15,18 @@ from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from .const import DOMAIN, IDENTITY_TOPIC, OTA_COMMAND_TOPIC, OTA_STATUS_TOPIC, PLATFORMS, TOKEN_SECRET_KEY
+from .const import (
+    DEVICE_IDENTIFIER_NAMESPACE,
+    DOMAIN,
+    IDENTITY_TOPIC,
+    OTA_COMMAND_TOPIC,
+    OTA_STATUS_TOPIC,
+    PLATFORMS,
+    TOKEN_SECRET_KEY,
+)
 
 _LOGGER = logging.getLogger(__name__)
 DATA_DEVICES = "devices"
@@ -43,8 +52,45 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "entity_ids": set(), "add_entities": None,
     }
     signal = f"{DOMAIN}_{entry.entry_id}_update"
+    device_registry = dr.async_get(hass)
+
+    def migrate_gateway_identifier(device_id: str) -> None:
+        """Replace the legacy integration-specific identifier on an existing device."""
+        legacy_identifier = (DOMAIN, device_id)
+        shared_identifier = (DEVICE_IDENTIFIER_NAMESPACE, device_id)
+        device = device_registry.async_get_device(identifiers={legacy_identifier})
+        if device is None or shared_identifier in device.identifiers:
+            return
+
+        conflicting_device = device_registry.async_get_device(
+            identifiers={shared_identifier}
+        )
+        if conflicting_device is not None and conflicting_device.id != device.id:
+            _LOGGER.error(
+                "Cannot migrate ESP32 %s to the shared device identifier: "
+                "that identifier is already assigned to another Home Assistant device. "
+                "Resolve the duplicate device entry before retrying.",
+                device_id,
+            )
+            return
+
+        identifiers = (device.identifiers - {legacy_identifier}) | {shared_identifier}
+        try:
+            device_registry.async_update_device(
+                device.id, new_identifiers=identifiers
+            )
+            _LOGGER.info(
+                "Migrated ESP32 %s to the shared Home Assistant device identifier",
+                device_id,
+            )
+        except HomeAssistantError:
+            _LOGGER.exception(
+                "Unable to migrate the Home Assistant device identifier for ESP32 %s",
+                device_id,
+            )
 
     async def update_device(device_id: str, values: dict[str, Any]) -> None:
+        migrate_gateway_identifier(device_id)
         device = data[DATA_DEVICES].setdefault(device_id, {
             "id": device_id, "name": f"ESP32-{device_id[-6:]}", "model": "ESP32",
             "available": False,
