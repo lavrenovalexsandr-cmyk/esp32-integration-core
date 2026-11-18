@@ -161,7 +161,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
             <button id="factory-reset" class="danger" ${selected?.available && !this._busy ? "" : "disabled"}>Полный сброс</button>
           </div>
           <div class="hint">Полный сброс удаляет пользовательские настройки в соответствии с реализацией прошивки. Успешная отправка команды не подтверждает завершение операции.</div>
-          <div id="control-status" class="message" role="status" aria-live="polite">\${this._escape(this._controlMessage)}</div>
+          <div id="control-status" class="message" role="status" aria-live="polite">${this._escape(this._controlMessage)}</div>
         </section>
       </div>`;
     for (const id of ["url","token"]) if (previous[id] !== undefined && this.querySelector("#"+id)) this.querySelector("#"+id).value=previous[id];
@@ -196,14 +196,27 @@ class Esp32OtaManagerPanel extends HTMLElement {
     await this._run(async()=>{await this._hass.callService("esp32_ota",command,{device_id:device.id});this._message("control-status",command==="restart"?"Команда перезагрузки отправлена в MQTT.":"Команда полного сброса отправлена в MQTT.");},"control-status");
   }
 
-  async _run(action) {
-    if(this._busy) return;
-    this._busy=true;this._render();
-    try{await action();}catch(error){this._message("action-status","Ошибка: "+error);}
-    finally{this._busy=false;this._render();}
+  async _run(action, target = "action-status") {
+    if (this._busy) return;
+    this._busy = true;
+    this._render();
+    try {
+      await action();
+    } catch (error) {
+      this._message(target, "Ошибка: " + error);
+    } finally {
+      this._busy = false;
+      this._render();
+    }
   }
 
-  _message(id,text){const element=this.querySelector("#"+id);if(element)element.textContent=text;}
+  _message(id, text) {
+    if (id === "control-status") this._controlMessage = text;
+    else this._actionMessage = text;
+    const element = this.querySelector("#" + id);
+    if (element) element.textContent = text;
+  }
+
   _escape(value){return String(value).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));}
 }
 
