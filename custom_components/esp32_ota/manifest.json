@@ -1,7 +1,7 @@
 {
   "domain": "esp32_ota",
   "name": "ESP32 Manager",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "documentation": "https://github.com/lavrenovalexsandr-cmyk/esp32-integration-manager",
   "issue_tracker": "https://github.com/lavrenovalexsandr-cmyk/esp32-integration-manager/issues",
   "dependencies": [
