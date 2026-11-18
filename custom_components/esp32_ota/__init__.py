@@ -54,6 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data = hass.data[DOMAIN][entry.entry_id] = {
         DATA_DEVICES: {}, DATA_UNSUB: [], "entry": entry,
         "entity_ids": set(), "add_entities": None,
+        "ignored_devices": set(entry.options.get("ignored_devices", [])),
     }
     signal = f"{DOMAIN}_{entry.entry_id}_update"
     device_registry = dr.async_get(hass)
@@ -94,6 +95,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
 
     async def update_device(device_id: str, values: dict[str, Any]) -> None:
+        if device_id in data["ignored_devices"]:
+            return
         migrate_gateway_identifier(device_id)
         device = data[DATA_DEVICES].setdefault(device_id, {
             "id": device_id, "name": f"ESP32-{device_id[-6:]}", "model": "ESP32",
@@ -224,6 +227,41 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(DOMAIN, "factory_reset", handle_factory_reset, schema=device_schema)
     hass.services.async_register(DOMAIN, "save_token", handle_save_token,
                                  schema=vol.Schema({vol.Required("token"): str}))
+    return True
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: ConfigEntry, device_entry: dr.DeviceEntry
+) -> bool:
+    """Allow removing an ESP32 gateway and prevent automatic rediscovery."""
+    device_id = next(
+        (
+            identifier[1].upper()
+            for identifier in device_entry.identifiers
+            if identifier[0] == DEVICE_IDENTIFIER_NAMESPACE
+            and ID_RE.fullmatch(identifier[1].upper())
+        ),
+        None,
+    )
+    if device_id is None:
+        return False
+
+    data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if data is None:
+        return False
+
+    ignored = set(data["ignored_devices"])
+    ignored.add(device_id)
+    data["ignored_devices"] = ignored
+    hass.config_entries.async_update_entry(
+        entry, options={**entry.options, "ignored_devices": sorted(ignored)}
+    )
+    data[DATA_DEVICES].pop(device_id, None)
+    data["entity_ids"].discard(device_id)
+    _LOGGER.info(
+        "Removed ESP32 %s from Home Assistant; rediscovery is suppressed",
+        device_id,
+    )
     return True
 
 
