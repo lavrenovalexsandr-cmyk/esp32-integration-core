@@ -192,15 +192,14 @@ class Esp32OtaManagerPanel extends HTMLElement {
   async _removeDevice() {
     const device=this._devices().find(item=>item.id===this._selected);
     if(!device) return;
-    if(!window.confirm(`Удалить «${device.name}» из Home Assistant? Все сущности, привязанные к записи этого устройства, также будут удалены.`)) return;
-    if(!window.confirm("Подтвердите полное удаление устройства. Если ESP32 останется активной, она не будет добавлена повторно автоматически.")) return;
+    if (!window.confirm(`Полностью удалить «${device.name}» из Home Assistant? Будут удалены запись устройства и связанные с ней сущности всех интеграций.`)) return;
+    if (!window.confirm("Подтвердите удаление. Если ESP32 продолжит передавать MQTT identity, Home Assistant обнаружит её снова.")) return;
     await this._run(async()=>{
-      const registry=await this._hass.connection.sendMessagePromise({type:"config/device_registry/list"});
-      const entry=registry.find(item=>(item.identifiers||[]).some(([namespace,id])=>namespace==="esp32" && String(id).toUpperCase()===device.id));
-      if(!entry) throw new Error("Устройство не найдено в реестре Home Assistant.");
-      await this._hass.connection.sendMessagePromise({type:"config/device_registry/remove",device_id:entry.id});
+      await this._hass.callService("esp32_ota","remove_device",{device_id:device.id});
       this._selected="";
-      this._message("control-status","Устройство и связанные с ним сущности удалены из Home Assistant.");
+      this._deviceNames.delete(device.id);
+      this._deviceNamesUpdatedAt=0;
+      this._message("control-status","Устройство удалено из Home Assistant. Повторное обнаружение по MQTT разрешено.");
     },"control-status");
   }
 
