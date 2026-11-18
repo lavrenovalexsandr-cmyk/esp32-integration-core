@@ -1,4 +1,4 @@
-"""ESP32 OTA manager integration."""
+"""ESP32 Manager integration."""
 from __future__ import annotations
 
 import json
