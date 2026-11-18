@@ -6,6 +6,8 @@ class Esp32OtaManagerPanel extends HTMLElement {
     this._deviceNamesUpdatedAt = 0;
     this._deviceNamesPromise = null;
     this._busy = false;
+    this._actionMessage = "";
+    this._controlMessage = "";
   }
 
   set hass(hass) {
@@ -159,7 +161,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
             <button id="factory-reset" class="danger" ${selected?.available && !this._busy ? "" : "disabled"}>Полный сброс</button>
           </div>
           <div class="hint">Полный сброс удаляет пользовательские настройки в соответствии с реализацией прошивки. Успешная отправка команды не подтверждает завершение операции.</div>
-          <div id="control-status" class="message" role="status" aria-live="polite"></div>
+          <div id="control-status" class="message" role="status" aria-live="polite">\${this._escape(this._controlMessage)}</div>
         </section>
       </div>`;
     for (const id of ["url","token"]) if (previous[id] !== undefined && this.querySelector("#"+id)) this.querySelector("#"+id).value=previous[id];
@@ -191,7 +193,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
       if(!window.confirm(`ВНИМАНИЕ! Выполнить полный сброс «${device.name}»? Пользовательские настройки будут удалены. Отменить действие нельзя.`)) return;
       if(!window.confirm("Подтвердите полный сброс ещё раз.")) return;
     }
-    await this._run(async()=>{await this._hass.callService("esp32_ota",command,{device_id:device.id});this._message("control-status",command==="restart"?"Команда перезагрузки отправлена в MQTT.":"Команда полного сброса отправлена в MQTT.");});
+    await this._run(async()=>{await this._hass.callService("esp32_ota",command,{device_id:device.id});this._message("control-status",command==="restart"?"Команда перезагрузки отправлена в MQTT.":"Команда полного сброса отправлена в MQTT.");},"control-status");
   }
 
   async _run(action) {
