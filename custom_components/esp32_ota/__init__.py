@@ -11,7 +11,8 @@ from typing import Any
 
 import voluptuous as vol
 import yaml
-from homeassistant.components import mqtt
+from homeassistant.components import frontend, mqtt, panel_custom
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
@@ -26,6 +27,9 @@ from .const import (
     OTA_STATUS_TOPIC,
     PLATFORMS,
     TOKEN_SECRET_KEY,
+    PANEL_STATIC_URL,
+    PANEL_URL_PATH,
+    PANEL_WEB_COMPONENT,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -149,6 +153,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     ]
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    if not hass.data[DOMAIN].get("_static_path_registered"):
+        await hass.http.async_register_static_paths(
+            [
+                StaticPathConfig(
+                    PANEL_STATIC_URL,
+                    str(Path(__file__).parent / "www" / "ota-panel.js"),
+                    cache_headers=False,
+                )
+            ]
+        )
+        hass.data[DOMAIN]["_static_path_registered"] = True
+
+    if not hass.data[DOMAIN].get("_panel_registered"):
+        await panel_custom.async_register_panel(
+            hass,
+            frontend_url_path=PANEL_URL_PATH,
+            webcomponent_name=PANEL_WEB_COMPONENT,
+            sidebar_title="ESP32 OTA",
+            sidebar_icon="mdi:chip",
+            module_url=f"{PANEL_STATIC_URL}?v=1",
+            require_admin=True,
+        )
+        hass.data[DOMAIN]["_panel_registered"] = True
+
     async def handle_update(call: ServiceCall) -> None:
         device_id = str(call.data["device_id"]).upper()
         url = str(call.data["url"]).strip()
@@ -251,6 +279,9 @@ async def _save_token(hass: HomeAssistant, token: str) -> None:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    if hass.data.get(DOMAIN, {}).get("_panel_registered"):
+        frontend.async_remove_panel(hass, PANEL_URL_PATH)
+        hass.data[DOMAIN]["_panel_registered"] = False
     data = hass.data[DOMAIN].pop(entry.entry_id, {})
     for unsub in data.get(DATA_UNSUB, []):
         unsub()
