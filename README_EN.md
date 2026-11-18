@@ -26,14 +26,18 @@ identifiers={("esp32", device_id)}
 
 - `esp32` is the platform-wide ESP32 namespace, not an integration-specific domain.
 - `device_id` is the stable gateway ID from MQTT identity.
-- The gateway name comes from the MQTT identity `name` field; the model comes from `model`. These values must be consistent across integrations.
+- **OTA Manager is responsible for the gateway's initial registration and for the initial user-assigned name** when the device is first discovered in Home Assistant.
+- The user-assigned name is stored in the Home Assistant Device Registry as `name_by_user` and is the single shared display name for the gateway across all ESP32 integrations.
+- The MQTT identity `name` is the device's original technical name and a fallback when `name_by_user` has not been set. It must never overwrite the user-assigned name.
+- Other ESP32 integrations, including Xiaomi Sensor Manager, must read `name_by_user` from the shared Device Registry entry and must not maintain a separate user-assigned gateway name.
 
-**For a future refactor:** `esp32_ota` must respect the user-assigned `name_by_user` in the Home Assistant Device Registry. The MQTT identity name should remain the device's original name and serve only as a fallback; it must never overwrite a name assigned by the user in HA.
+Rename the gateway through Home Assistant's device page (**Settings → Devices & services → Devices → ESP32 → Edit device**). The new name must then be displayed by all integrations using the shared identifier. Renaming does not change the MQTT identity or the stable `device_id`.
+
+**Requirement for the future `esp32_ota` refactor:** whenever the integration updates the gateway entry, it must preserve `name_by_user`. Calling `async_get_or_create` with the MQTT name may create/update the device's original identity data, but must not cause the user-assigned name to be lost.
 
 **Migration in this branch:** on the first MQTT message from a gateway, the integration automatically replaces the legacy identifier with the shared one while preserving the existing device entry and its entities. If the shared identifier already belongs to a different HA device entry, the automatic change is skipped and an error is logged; such duplicates must not be merged blindly. Update `esp32_ota` before installing/updating other integrations that use the new namespace. The integration and service domain `esp32_ota` remains unchanged.
 
 Other ESP32 integrations must use the same identifier and obtain identity directly from the shared MQTT contract. They must not import `esp32_ota` code or require it to be installed. Integrations can independently add their entities to the same gateway device.
-
 ## Device availability
 
 The integration tracks MQTT availability separately through `esp32/<DEVICE_ID>/availability` (retained `online` / `offline`). OTA status is not used to determine device availability. If the ESP32 disconnects unexpectedly, the broker publishes retained `offline` through the MQTT Last Will configured by the Core `platform_ha` component. The OTA card displays “Offline” regardless of the last update result.
