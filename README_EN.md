@@ -1,6 +1,6 @@
 [Русский](README.md) | [English](README_EN.md)
 
-# ESP32 OTA Manager for Home Assistant
+# ESP32 Manager for Home Assistant
 
 A Home Assistant custom integration for discovering ESP32 devices over MQTT, displaying their status, and managing OTA firmware updates, device restarts, factory resets, and full removal from Home Assistant while keeping rediscovery enabled.
 
@@ -8,7 +8,7 @@ A Home Assistant custom integration for discovering ESP32 devices over MQTT, dis
 
 - `custom_components/esp32_ota` — Home Assistant integration and device-control services.
 
-The **ESP32 OTA Manager** control panel is included in this integration and appears in the Home Assistant sidebar. No separate Lovelace card or second HACS repository is required.
+The **ESP32 Manager** control panel is included in this integration and appears in the Home Assistant sidebar. No separate Lovelace card or second HACS repository is required.
 
 ## Requirements
 
@@ -49,9 +49,9 @@ The integration tracks MQTT availability separately through `esp32/<DEVICE_ID>/a
 3. Add this repository:
    `https://github.com/lavrenovalexsandr-cmyk/esp32-integration-core`
 4. Select **Integration** as the category and confirm.
-5. Find **ESP32 OTA Manager** in HACS and install it.
+5. Find **ESP32 Manager** in HACS and install it.
 6. Restart Home Assistant.
-7. Go to **Settings → Devices & services → Add integration** and add **ESP32 OTA Manager**.
+7. Go to **Settings → Devices & services → Add integration** and add **ESP32 Manager**.
 8. Open the **ESP32 OTA** panel from the Home Assistant sidebar.
 
 HACS installs the integration files into `custom_components/esp32_ota`. Future versions can be updated directly from HACS.
