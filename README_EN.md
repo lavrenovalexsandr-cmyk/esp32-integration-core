@@ -60,7 +60,13 @@ HACS installs the integration files into `custom_components/esp32_ota`. Future v
 
 If you do not use HACS, copy `custom_components/esp32_ota` into `<HA config>/custom_components/esp32_ota`, restart Home Assistant, and add the integration from **Settings → Devices & services → Add integration**.
 
-## Home Assistant control panel\n\nThe **ESP32 OTA** panel is shipped with the integration, registered in the Home Assistant sidebar, and restricted to administrators. It combines ESP32 selection, MQTT availability, OTA status and progress, firmware update, GitHub token storage, restart, and factory reset. The panel calls integration services and never publishes MQTT directly.\n\nThe panel reads `name_by_user` from the shared Device Registry entry identified by `("esp32", device_id)` and falls back to the device's original name when no user-assigned name exists.\n\n## Home Assistant services
+## Home Assistant control panel
+
+The **ESP32 OTA** panel is shipped with the integration, registered in the Home Assistant sidebar, and restricted to administrators. It combines ESP32 selection, MQTT availability, OTA status and progress, firmware update, GitHub token storage, restart, and factory reset. The panel calls integration services and never publishes MQTT directly.
+
+The panel reads `name_by_user` from the shared Device Registry entry identified by `("esp32", device_id)` and falls back to the device's original name when no user-assigned name exists.
+
+## Home Assistant services
 
 The integration provides the following services in the `esp32_ota` domain:
 
