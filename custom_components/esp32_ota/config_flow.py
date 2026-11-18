@@ -1,4 +1,4 @@
-"""Config flow for ESP32 OTA Manager."""
+"""Config flow for ESP32 Manager."""
 from __future__ import annotations
 
 import voluptuous as vol
@@ -14,6 +14,6 @@ class Esp32OtaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if self._async_current_entries():
             return self.async_abort(reason="already_configured")
         if user_input is not None:
-            return self.async_create_entry(title="ESP32 OTA Manager", data={})
+            return self.async_create_entry(title="ESP32 Manager", data={})
         return self.async_show_form(step_id="user", data_schema=vol.Schema({}))
 
