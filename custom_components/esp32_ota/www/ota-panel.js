@@ -123,6 +123,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
         .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
         button{min-height:44px;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer;background:var(--primary-color);color:var(--text-primary-color,white)}
         button.secondary{background:var(--secondary-background-color);color:var(--primary-text-color)}
+        button.primary{background:var(--primary-color);color:var(--text-primary-color,white)}
         button.danger{background:var(--error-color);color:white}
         button:disabled{opacity:.45;cursor:not-allowed}
         .message{min-height:20px;margin-top:12px;font-size:13px;overflow-wrap:anywhere;color:var(--secondary-text-color)}
@@ -149,16 +150,16 @@ class Esp32OtaManagerPanel extends HTMLElement {
           <label for="token">GitHub token (необязательно)</label>
           <input id="token" type="password" autocomplete="new-password" placeholder="Пустое поле — использовать сохранённый токен">
           <div class="actions">
-            <button id="update" ${selected?.available && !this._busy ? "" : "disabled"}>Начать обновление</button>
-            <button id="save" class="secondary" ${!this._busy ? "" : "disabled"}>Сохранить токен</button>
+            <button id="update" class="danger" ${selected?.available && !this._busy ? "" : "disabled"}>Начать обновление</button>
+            <button id="save" class="primary" ${!this._busy ? "" : "disabled"}>Сохранить токен</button>
           </div>
           <div id="action-status" class="message" role="status" aria-live="polite">${this._escape(this._actionMessage || (devices.length ? "Готово к отправке OTA-команды." : "Ожидание обнаружения ESP32 по MQTT…"))}</div>
         </section>
         <section class="card">
           <h2 style="font-size:18px;font-weight:500;margin:0">Управление устройством</h2>
           <div class="actions">
-            <button id="restart" class="secondary" ${selected?.available && !this._busy ? "" : "disabled"}>Перезагрузка</button>
             <button id="factory-reset" class="danger" ${selected?.available && !this._busy ? "" : "disabled"}>Полный сброс</button>
+            <button id="restart" class="primary" ${selected?.available && !this._busy ? "" : "disabled"}>Перезагрузка</button>
           </div>
           <div class="hint">Полный сброс удаляет пользовательские настройки в соответствии с реализацией прошивки. Успешная отправка команды не подтверждает завершение операции.</div>
           <div id="control-status" class="message" role="status" aria-live="polite">${this._escape(this._controlMessage)}</div>
