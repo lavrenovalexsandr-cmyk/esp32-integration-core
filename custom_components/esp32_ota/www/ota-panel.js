@@ -121,6 +121,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
         .progress{height:8px;background:var(--divider-color);border-radius:8px;overflow:hidden;margin-top:10px}
         .progress>div{height:100%;background:var(--primary-color);transition:width .2s}
         .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+        button.full-width{grid-column:1/-1}
         button{min-height:44px;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer;background:var(--primary-color);color:var(--text-primary-color,white)}
         button.secondary{background:var(--secondary-background-color);color:var(--primary-text-color)}
         button.primary{background:var(--primary-color);color:var(--text-primary-color,white)}
@@ -160,6 +161,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
           <div class="actions">
             <button id="factory-reset" class="danger" ${selected?.available && !this._busy ? "" : "disabled"}>Полный сброс</button>
             <button id="restart" class="primary" ${selected?.available && !this._busy ? "" : "disabled"}>Перезагрузка</button>
+            <button id="remove-device" class="danger full-width" ${selected && !this._busy ? "" : "disabled"}>Удалить из Home Assistant</button>
           </div>
           <div class="hint">Полный сброс удаляет пользовательские настройки в соответствии с реализацией прошивки. Успешная отправка команды не подтверждает завершение операции.</div>
           <div id="control-status" class="message" role="status" aria-live="polite">${this._escape(this._controlMessage)}</div>
@@ -171,6 +173,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
     this.querySelector("#update")?.addEventListener("click", () => this._update());
     this.querySelector("#restart")?.addEventListener("click", () => this._deviceCommand("restart"));
     this.querySelector("#factory-reset")?.addEventListener("click", () => this._deviceCommand("factory_reset"));
+    this.querySelector("#remove-device")?.addEventListener("click", () => this._removeDevice());
   }
 
   async _saveToken() {
@@ -184,6 +187,21 @@ class Esp32OtaManagerPanel extends HTMLElement {
     const token=this.querySelector("#token")?.value || "";
     if(!this._selected || !url){this._message("action-status","Выберите устройство и заполните URL файла прошивки.");return;}
     await this._run(async()=>{await this._hass.callService("esp32_ota","update",{device_id:this._selected,url,token});this.querySelector("#token").value="";this._message("action-status","Команда отправлена. Ожидаем статус от ESP32…");});
+  }
+
+  async _removeDevice() {
+    const device=this._devices().find(item=>item.id===this._selected);
+    if(!device) return;
+    if(!window.confirm(`Удалить «${device.name}» из Home Assistant? Все сущности, привязанные к записи этого устройства, также будут удалены.`)) return;
+    if(!window.confirm("Подтвердите полное удаление устройства. Если ESP32 останется активной, она не будет добавлена повторно автоматически.")) return;
+    await this._run(async()=>{
+      const registry=await this._hass.connection.sendMessagePromise({type:"config/device_registry/list"});
+      const entry=registry.find(item=>(item.identifiers||[]).some(([namespace,id])=>namespace==="esp32" && String(id).toUpperCase()===device.id));
+      if(!entry) throw new Error("Устройство не найдено в реестре Home Assistant.");
+      await this._hass.connection.sendMessagePromise({type:"config/device_registry/remove",device_id:entry.id});
+      this._selected="";
+      this._message("control-status","Устройство и связанные с ним сущности удалены из Home Assistant.");
+    },"control-status");
   }
 
   async _deviceCommand(command) {
