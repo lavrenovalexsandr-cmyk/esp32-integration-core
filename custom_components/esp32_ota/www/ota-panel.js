@@ -152,7 +152,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
             <button id="update" ${selected?.available && !this._busy ? "" : "disabled"}>Начать обновление</button>
             <button id="save" class="secondary" ${!this._busy ? "" : "disabled"}>Сохранить токен</button>
           </div>
-          <div id="action-status" class="message" role="status" aria-live="polite">${devices.length ? "Готово к отправке OTA-команды." : "Ожидание обнаружения ESP32 по MQTT…"}</div>
+          <div id="action-status" class="message" role="status" aria-live="polite">${this._escape(this._actionMessage || (devices.length ? "Готово к отправке OTA-команды." : "Ожидание обнаружения ESP32 по MQTT…"))}</div>
         </section>
         <section class="card">
           <h2 style="font-size:18px;font-weight:500;margin:0">Управление устройством</h2>
