@@ -33,7 +33,7 @@ identifiers={("esp32", device_id)}
 
 Rename the gateway through Home Assistant's device page (**Settings → Devices & services → Devices → ESP32 → Edit device**). The new name must then be displayed by all integrations using the shared identifier. Renaming does not change the MQTT identity or the stable `device_id`.
 
-**Requirement for the future `esp32_ota` refactor:** whenever the integration updates the gateway entry, it must preserve `name_by_user`. Calling `async_get_or_create` with the MQTT name may create/update the device's original identity data, but must not cause the user-assigned name to be lost.
+**Requirement for the `esp32_ota` implementation:** whenever the integration updates the gateway entry, it must preserve `name_by_user`. Calling `async_get_or_create` with the MQTT name may create/update the device's original identity data, but must not cause the user-assigned name to be lost.
 
 **Migration in this branch:** on the first MQTT message from a gateway, the integration automatically replaces the legacy identifier with the shared one while preserving the existing device entry and its entities. If the shared identifier already belongs to a different HA device entry, the automatic change is skipped and an error is logged; such duplicates must not be merged blindly. Update `esp32_ota` before installing/updating other integrations that use the new namespace. The integration and service domain `esp32_ota` remains unchanged.
 
