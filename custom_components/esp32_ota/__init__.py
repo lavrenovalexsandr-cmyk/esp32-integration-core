@@ -16,7 +16,7 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
@@ -229,6 +229,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if device_entry is None:
             raise HomeAssistantError("Устройство не найдено в реестре Home Assistant.")
 
+        # Remove every entity attached to this shared ESP32 gateway, including
+        # entities contributed by other ESP32 integrations.
+        entity_registry = er.async_get(hass)
+        for entity in er.async_entries_for_device(
+            entity_registry, device_entry.id, include_disabled_entities=True
+        ):
+            entity_registry.async_remove(entity.entity_id)
+
         # Clear runtime state before removing the registry entry. The next MQTT
         # identity message can then create a fresh entity for the same device.
         data[DATA_DEVICES].pop(device_id, None)
@@ -283,6 +291,12 @@ async def async_remove_config_entry_device(
     data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     if data is None:
         return False
+
+    entity_registry = er.async_get(hass)
+    for entity in er.async_entries_for_device(
+        entity_registry, device_entry.id, include_disabled_entities=True
+    ):
+        entity_registry.async_remove(entity.entity_id)
 
     data[DATA_DEVICES].pop(device_id, None)
     data["entity_ids"].discard(device_id)
