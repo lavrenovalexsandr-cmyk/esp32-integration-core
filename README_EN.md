@@ -8,7 +8,7 @@ A Home Assistant custom integration for discovering ESP32 devices over MQTT, dis
 
 - `custom_components/esp32_ota` — Home Assistant integration and device-control services.
 
-The Lovelace cards have been moved to a separate repository: [esp32-card](https://github.com/lavrenovalexsandr-cmyk/esp32-card).
+The **ESP32 OTA Manager** control panel is included in this integration and appears in the Home Assistant sidebar. No separate Lovelace card or second HACS repository is required.
 
 ## Requirements
 
@@ -40,7 +40,7 @@ Rename the gateway through Home Assistant's device page (**Settings → Devices 
 Other ESP32 integrations must use the same identifier and obtain identity directly from the shared MQTT contract. They must not import `esp32_ota` code or require it to be installed. Integrations can independently add their entities to the same gateway device.
 ## Device availability
 
-The integration tracks MQTT availability separately through `esp32/<DEVICE_ID>/availability` (retained `online` / `offline`). OTA status is not used to determine device availability. If the ESP32 disconnects unexpectedly, the broker publishes retained `offline` through the MQTT Last Will configured by the Core `platform_ha` component. The OTA card displays “Offline” regardless of the last update result.
+The integration tracks MQTT availability separately through `esp32/<DEVICE_ID>/availability` (retained `online` / `offline`). OTA status is not used to determine device availability. If the ESP32 disconnects unexpectedly, the broker publishes retained `offline` through the MQTT Last Will configured by the Core `platform_ha` component. The **ESP32 OTA** panel displays “Offline” regardless of the last update result.
 
 ## Installation through HACS
 
@@ -52,7 +52,7 @@ The integration tracks MQTT availability separately through `esp32/<DEVICE_ID>/a
 5. Find **ESP32 OTA Manager** in HACS and install it.
 6. Restart Home Assistant.
 7. Go to **Settings → Devices & services → Add integration** and add **ESP32 OTA Manager**.
-8. Install the Lovelace cards separately from the [esp32-card](https://github.com/lavrenovalexsandr-cmyk/esp32-card) repository.
+8. Open the **ESP32 OTA** panel from the Home Assistant sidebar.
 
 HACS installs the integration files into `custom_components/esp32_ota`. Future versions can be updated directly from HACS.
 
@@ -60,7 +60,7 @@ HACS installs the integration files into `custom_components/esp32_ota`. Future v
 
 If you do not use HACS, copy `custom_components/esp32_ota` into `<HA config>/custom_components/esp32_ota`, restart Home Assistant, and add the integration from **Settings → Devices & services → Add integration**.
 
-## Home Assistant services
+## Home Assistant control panel\n\nThe **ESP32 OTA** panel is shipped with the integration, registered in the Home Assistant sidebar, and restricted to administrators. It combines ESP32 selection, MQTT availability, OTA status and progress, firmware update, GitHub token storage, restart, and factory reset. The panel calls integration services and never publishes MQTT directly.\n\nThe panel reads `name_by_user` from the shared Device Registry entry identified by `("esp32", device_id)` and falls back to the device's original name when no user-assigned name exists.\n\n## Home Assistant services
 
 The integration provides the following services in the `esp32_ota` domain:
 
@@ -121,6 +121,6 @@ The firmware-side OTA receiver is maintained in the ESP32 firmware project: [esp
 
 ## GitHub token for private releases
 
-The OTA card accepts an optional GitHub token. The integration can save it under `esp32_ota_github_token` in Home Assistant's `secrets.yaml`. Existing lines and comments are preserved, and the file is written atomically with owner-only permissions. A token entered directly in the update form overrides the saved token for that request.
+The **ESP32 OTA** panel accepts an optional GitHub token. The integration can save it under `esp32_ota_github_token` in Home Assistant's `secrets.yaml`. Existing lines and comments are preserved, and the file is written atomically with owner-only permissions. A token entered directly in the update form overrides the saved token for that request.
 
 Tokens are sent only to GitHub API endpoints; they must not be forwarded to external CDN hosts.
