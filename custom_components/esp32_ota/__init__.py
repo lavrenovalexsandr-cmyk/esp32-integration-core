@@ -175,7 +175,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             webcomponent_name=PANEL_WEB_COMPONENT,
             sidebar_title="ESP32 OTA",
             sidebar_icon="mdi:chip",
-            module_url=f"{PANEL_STATIC_URL}?v=1",
+            module_url=f"{PANEL_STATIC_URL}?v=2",
             require_admin=True,
         )
         hass.data[DOMAIN]["_panel_registered"] = True
