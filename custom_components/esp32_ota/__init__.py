@@ -279,13 +279,16 @@ async def _save_token(hass: HomeAssistant, token: str) -> None:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        return False
+
     if hass.data.get(DOMAIN, {}).get("_panel_registered"):
         frontend.async_remove_panel(hass, PANEL_URL_PATH)
         hass.data[DOMAIN]["_panel_registered"] = False
+
     data = hass.data[DOMAIN].pop(entry.entry_id, {})
     for unsub in data.get(DATA_UNSUB, []):
         unsub()
-    await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     hass.services.async_remove(DOMAIN, "update")
     hass.services.async_remove(DOMAIN, "save_token")
     hass.services.async_remove(DOMAIN, "restart")
