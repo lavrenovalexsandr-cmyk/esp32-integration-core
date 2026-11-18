@@ -218,6 +218,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def handle_save_token(call: ServiceCall) -> None:
         await _save_token(hass, str(call.data.get("token", "")).strip())
 
+    async def handle_remove_device(call: ServiceCall) -> None:
+        device_id = str(call.data["device_id"]).upper()
+        if not ID_RE.fullmatch(device_id):
+            raise HomeAssistantError("Некорректный ID ESP32.")
+
+        device_entry = device_registry.async_get_device(
+            identifiers={(DEVICE_IDENTIFIER_NAMESPACE, device_id)}
+        )
+        if device_entry is None:
+            raise HomeAssistantError("Устройство не найдено в реестре Home Assistant.")
+
+        # Clear runtime state before removing the registry entry. The next MQTT
+        # identity message can then create a fresh entity for the same device.
+        data[DATA_DEVICES].pop(device_id, None)
+        data["entity_ids"].discard(device_id)
+        ignored = set(data["ignored_devices"])
+        if device_id in ignored:
+            ignored.discard(device_id)
+            data["ignored_devices"] = ignored
+            hass.config_entries.async_update_entry(
+                entry,
+                options={**entry.options, "ignored_devices": sorted(ignored)},
+            )
+
+        device_registry.async_remove_device(device_entry.id)
+        _LOGGER.info(
+            "Removed ESP32 %s and its Home Assistant device registry entry; "
+            "MQTT rediscovery remains enabled",
+            device_id,
+        )
+
     hass.services.async_register(DOMAIN, "update", handle_update, schema=vol.Schema({
         vol.Required("device_id"): str, vol.Required("url"): str,
         vol.Optional("token", default=""): str,
@@ -227,13 +258,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(DOMAIN, "factory_reset", handle_factory_reset, schema=device_schema)
     hass.services.async_register(DOMAIN, "save_token", handle_save_token,
                                  schema=vol.Schema({vol.Required("token"): str}))
+    hass.services.async_register(
+        DOMAIN, "remove_device", handle_remove_device, schema=device_schema
+    )
     return True
 
 
 async def async_remove_config_entry_device(
     hass: HomeAssistant, entry: ConfigEntry, device_entry: dr.DeviceEntry
 ) -> bool:
-    """Allow removing an ESP32 gateway and prevent automatic rediscovery."""
+    """Allow removing an ESP32 gateway while keeping MQTT rediscovery enabled."""
     device_id = next(
         (
             identifier[1].upper()
@@ -250,20 +284,21 @@ async def async_remove_config_entry_device(
     if data is None:
         return False
 
-    ignored = set(data["ignored_devices"])
-    ignored.add(device_id)
-    data["ignored_devices"] = ignored
-    hass.config_entries.async_update_entry(
-        entry, options={**entry.options, "ignored_devices": sorted(ignored)}
-    )
     data[DATA_DEVICES].pop(device_id, None)
     data["entity_ids"].discard(device_id)
+    ignored = set(data["ignored_devices"])
+    if device_id in ignored:
+        ignored.discard(device_id)
+        data["ignored_devices"] = ignored
+        hass.config_entries.async_update_entry(
+            entry, options={**entry.options, "ignored_devices": sorted(ignored)}
+        )
+
     _LOGGER.info(
-        "Removed ESP32 %s from Home Assistant; rediscovery is suppressed",
+        "ESP32 %s removed from Home Assistant; MQTT rediscovery remains enabled",
         device_id,
     )
     return True
-
 
 async def _read_token(hass: HomeAssistant) -> str:
     path = Path(hass.config.config_dir) / "secrets.yaml"
@@ -331,4 +366,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_remove(DOMAIN, "save_token")
     hass.services.async_remove(DOMAIN, "restart")
     hass.services.async_remove(DOMAIN, "factory_reset")
+    hass.services.async_remove(DOMAIN, "remove_device")
     return True
