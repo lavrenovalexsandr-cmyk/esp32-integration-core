@@ -2,7 +2,7 @@
 
 # ESP32 OTA Manager for Home Assistant
 
-A Home Assistant custom integration for discovering ESP32 devices over MQTT, displaying their status, and managing OTA firmware updates, device restarts, and factory resets.
+A Home Assistant custom integration for discovering ESP32 devices over MQTT, displaying their status, and managing OTA firmware updates, device restarts, factory resets, and full removal from Home Assistant while keeping rediscovery enabled.
 
 ## Repository contents
 
@@ -62,7 +62,7 @@ If you do not use HACS, copy `custom_components/esp32_ota` into `<HA config>/cus
 
 ## Home Assistant control panel
 
-The **ESP32 OTA** panel is shipped with the integration, registered in the Home Assistant sidebar, and restricted to administrators. It combines ESP32 selection, MQTT availability, OTA status and progress, firmware update, GitHub token storage, restart, and factory reset. The panel calls integration services and never publishes MQTT directly.
+The **ESP32 OTA** panel is shipped with the integration, registered in the Home Assistant sidebar, and restricted to administrators. It combines ESP32 selection, MQTT availability, OTA status and progress, firmware update, GitHub token storage, restart, and factory reset. The panel calls integration services and never publishes MQTT directly. Removing a gateway clears its Device Registry entry and associated entities; a subsequent MQTT identity message from the ESP32 can discover it again.
 
 The panel reads `name_by_user` from the shared Device Registry entry identified by `("esp32", device_id)` and falls back to the device's original name when no user-assigned name exists.
 
@@ -76,6 +76,7 @@ The integration provides the following services in the `esp32_ota` domain:
 | `esp32_ota.restart` | `device_id` | Request a normal reboot of the selected ESP32 |
 | `esp32_ota.factory_reset` | `device_id` | Request a factory reset of the selected ESP32 |
 | `esp32_ota.save_token` | `token` | Save the GitHub token |
+| `esp32_ota.remove_device` | `device_id` | Remove the Home Assistant device entry and associated entities while keeping MQTT rediscovery enabled |
 
 For device-control services, `device_id` is the 12-character hexadecimal hardware ID of the ESP32. The device must have been discovered by the integration over MQTT.
 
