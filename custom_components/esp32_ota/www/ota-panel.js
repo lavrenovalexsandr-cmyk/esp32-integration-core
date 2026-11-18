@@ -45,7 +45,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
           }
         }
       } catch (error) {
-        console.warn("ESP32 OTA Manager: unable to load device registry", error);
+        console.warn("ESP32 Manager: unable to load device registry", error);
       } finally {
         this._deviceNamesUpdatedAt = Date.now();
         this._deviceNamesPromise = null;
@@ -133,7 +133,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
         @media(max-width:380px){.actions{grid-template-columns:1fr}}
       </style>
       <div class="content">
-        <h1>ESP32 OTA Manager</h1>
+        <h1>ESP32 Manager</h1>
         <p class="intro">Обновление прошивки и управление ESP32-шлюзами.</p>
         <section class="card">
           <label for="device">Устройство</label>
