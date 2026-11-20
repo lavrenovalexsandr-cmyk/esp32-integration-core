@@ -175,7 +175,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
 
     const deviceSelect = this.querySelector("#device");
     // Не трогаем option-элементы, пока select открыт/в фокусе.
-    if (this.shadowRoot?.activeElement !== deviceSelect && document.activeElement !== deviceSelect) {
+    if (!deviceSelect.matches(":focus")) {
       const options = devices.map(device =>
         `<option value="${this._escape(device.id)}">${this._escape(device.name)} · ${this._escape(device.id)}</option>`
       ).join("");
