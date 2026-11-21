@@ -1,16 +1,16 @@
 {
   "domain": "esp32_ota",
   "name": "ESP32 Manager",
-  "version": "2.4.0",
-  "documentation": "https://github.com/lavrenovalexsandr-cmyk/esp32-integration-manager",
-  "issue_tracker": "https://github.com/lavrenovalexsandr-cmyk/esp32-integration-manager/issues",
+  "codeowners": [
+    "@lavrenovalexsandr-cmyk"
+  ],
+  "config_flow": true,
   "dependencies": [
     "http",
     "mqtt"
   ],
-  "codeowners": [
-    "@lavrenovalexsandr-cmyk"
-  ],
+  "documentation": "https://github.com/lavrenovalexsandr-cmyk/esp32-integration-manager",
   "iot_class": "local_push",
-  "config_flow": true
+  "issue_tracker": "https://github.com/lavrenovalexsandr-cmyk/esp32-integration-manager/issues",
+  "version": "2.4.0"
 }
