@@ -254,6 +254,8 @@ class Esp32OtaManagerPanel extends HTMLElement {
           button{min-height:44px;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer;background:var(--primary-color);color:var(--text-primary-color,white)}
           button.secondary{background:var(--secondary-background-color);color:var(--primary-text-color)}
           button.primary{background:var(--primary-color);color:var(--text-primary-color,white)}
+          button.blue{background:var(--info-color,#1976d2);color:white}
+          button.green{background:var(--success-color,#2e7d32);color:white}
           button.danger{background:var(--error-color);color:white}
           button:disabled{opacity:.45;cursor:not-allowed}
           .message{min-height:20px;margin-top:12px;font-size:13px;overflow-wrap:anywhere;color:var(--secondary-text-color)}
@@ -294,7 +296,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
               <button id="save" class="primary">Сохранить токен</button>
             </div>
             <div id="action-status" class="message" role="status" aria-live="polite"></div>
-            <button id="manage-repositories" class="secondary full-width" style="margin-top:12px">Управление репозиториями</button>
+            <button id="manage-repositories" class="blue full-width" style="margin-top:12px">Управление репозиториями</button>
           </section>
           <section class="card">
             <h2 style="font-size:18px;font-weight:500;margin:0">Управление устройством</h2>
@@ -315,7 +317,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
             </div>
             <div class="hint">Каталог хранится локально в Home Assistant. Token каждого репозитория сохраняется отдельно и не возвращается в браузер.</div>
             <div id="repository-list"></div>
-            <div class="modal-header" style="margin-top:18px"><h3 style="font-size:16px;font-weight:500;margin:0">Добавить или изменить репозиторий</h3><button id="repo-add-new" class="secondary">Новый</button></div>
+            <div class="modal-header" style="margin-top:18px"><h3 style="font-size:16px;font-weight:500;margin:0">Добавить или изменить репозиторий</h3><button id="repo-add-new" class="green"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" style="vertical-align:-4px;margin-right:7px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 11v6M9 14h6"/></svg>Создать новый</button></div>
             <label for="repo-url">URL GitHub-репозитория</label><input id="repo-url" type="url" placeholder="https://github.com/owner/repository">
             <label for="repo-name">Отображаемое имя</label><input id="repo-name" type="text" maxlength="80" placeholder="Например, Xiaomi BLE Gateway">
             <label for="repo-token">GitHub token для этого репозитория (необязательно)</label><input id="repo-token" type="password" autocomplete="new-password" placeholder="Пустое поле — сохранить прежний token">
@@ -396,7 +398,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
     assetSelect.disabled=!assets.length;
     this.querySelector("#release-status").textContent=this._releaseMessage;
     const list=this.querySelector("#repository-list");
-    list.innerHTML=this._repositories.length?this._repositories.map(repo=>`<div class="status ${repo.access_ok===true?"success":repo.access_ok===false?"error":"neutral"}" style="display:block"><div class="status-title">${this._escape(repo.name)}</div><div class="detail">${this._escape(repo.id)} · ${repo.has_token?"token сохранён":"без token"} · ${repo.access_ok===true?"доступ проверен":repo.access_ok===false?"ошибка доступа":"не проверялся"}</div>${repo.last_error?`<div class="detail">${this._escape(repo.last_error)}</div>`:""}<div class="actions"><button class="secondary" data-edit-repo="${this._escape(repo.id)}">Изменить</button><button class="secondary" data-test-repo="${this._escape(repo.id)}">Проверить доступ</button><button class="danger" data-remove-repo="${this._escape(repo.id)}">Удалить</button></div></div>`).join(""):"<div class=\"hint\">Каталог пока пуст.</div>";
+    list.innerHTML=this._repositories.length?this._repositories.map(repo=>`<div class="status ${repo.access_ok===true?"success":repo.access_ok===false?"error":"neutral"}" style="display:block"><div class="status-title">${this._escape(repo.name)}</div><div class="detail">${this._escape(repo.id)} · ${repo.has_token?"token сохранён":"без token"} · ${repo.access_ok===true?"доступ проверен":repo.access_ok===false?"ошибка доступа":"не проверялся"}</div>${repo.last_error?`<div class="detail">${this._escape(repo.last_error)}</div>`:""}<div class="actions"><button class="blue" data-edit-repo="${this._escape(repo.id)}">Изменить</button><button class="blue" data-test-repo="${this._escape(repo.id)}">Проверить доступ</button><button class="danger" data-remove-repo="${this._escape(repo.id)}">Удалить</button></div></div>`).join(""):"<div class=\"hint\">Каталог пока пуст.</div>";
     list.querySelectorAll("[data-edit-repo]").forEach(button=>button.addEventListener("click",()=>this._editRepository(button.dataset.editRepo)));
     list.querySelectorAll("[data-test-repo]").forEach(button=>button.addEventListener("click",()=>this._testRepository(button.dataset.testRepo)));
     list.querySelectorAll("[data-remove-repo]").forEach(button=>button.addEventListener("click",()=>this._removeRepository(button.dataset.removeRepo)));
