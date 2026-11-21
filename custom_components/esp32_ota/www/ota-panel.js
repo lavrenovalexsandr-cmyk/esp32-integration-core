@@ -71,7 +71,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
       this.querySelector("#repo-clear-token").checked=false;
       this._catalogMessage="Репозиторий сохранён.";
       await this._loadRepositories(true);
-      const parsed=new URL(url); this._selectedRepo=parsed.pathname.replace(/^\\//,"").replace(/\\.git$/i,"");
+      const parsed=new URL(url); this._selectedRepo=parsed.pathname.split("/").filter(Boolean).slice(0,2).join("/").replace(/\.git$/i,"");
       await this._loadReleases(this._selectedRepo);
     } catch(error) { this._catalogMessage="Ошибка сохранения: "+error; }
     this._render();
@@ -237,6 +237,17 @@ class Esp32OtaManagerPanel extends HTMLElement {
               <button id="save" class="primary">Сохранить токен</button>
             </div>
             <div id="action-status" class="message" role="status" aria-live="polite"></div>
+          </section>
+          <section class="card" id="repository-card">
+            <h2 style="font-size:18px;font-weight:500;margin:0">Каталог GitHub-репозиториев</h2>
+            <div class="hint">Токены хранятся в Home Assistant и не возвращаются в браузер. Публичным репозиториям token не требуется.</div>
+            <div id="repository-list"></div>
+            <label for="repo-url">URL GitHub-репозитория</label><input id="repo-url" type="url" placeholder="https://github.com/owner/repository">
+            <label for="repo-name">Отображаемое имя</label><input id="repo-name" type="text" maxlength="80" placeholder="Например, Xiaomi BLE Gateway">
+            <label for="repo-token">GitHub token для этого репозитория (необязательно)</label><input id="repo-token" type="password" autocomplete="new-password" placeholder="Пустое поле — сохранить прежний token">
+            <label style="display:flex;align-items:center;gap:8px"><input id="repo-clear-token" type="checkbox" style="width:auto;min-height:0"> Удалить сохранённый token</label>
+            <button id="repo-save" class="primary">Сохранить репозиторий</button>
+            <div id="catalog-status" class="message" role="status" aria-live="polite"></div>
           </section>
           <section class="card">
             <h2 style="font-size:18px;font-weight:500;margin:0">Управление устройством</h2>
