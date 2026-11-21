@@ -52,7 +52,7 @@ ESP32 Manager предоставляет публичный API через `hass
 - `get_devices()` — snapshots всех идентифицированных ESP32;
 - `register_remove_handler(integration_domain, async_handler)` — регистрация обработчика очистки данных интеграции.
 
-Snapshot содержит `device_id`, техническое и пользовательское имя, manufacturer, model, sw_version, availability, profile, product_id, capabilities и operations. Изменения публикуются событиями `esp32_ota_device_added` и `esp32_ota_device_updated` с полем `device`, содержащим snapshot. Версия публичного API проверяется потребителем до использования.
+Snapshot содержит `device_id`, техническое и пользовательское имя, manufacturer, model, sw_version, availability, profile, product_id, capabilities и operations. Изменения публикуются событиями `esp32_ota_device_added` и `esp32_ota_device_updated` с полем `device`, содержащим snapshot. Удаление сопровождается событиями `esp32_ota_device_removing` и `esp32_ota_device_removed` с полем `device_id`. Версия публичного API проверяется потребителем до использования.
 
 Специализированная интеграция может подписываться на собственные продуктовые MQTT-топики (например, Xiaomi measurements и registry), но общие сведения об ESP32 получает только от ESP32 Manager. Прямые импорты Python между интеграциями не используются.
 ## Доступность устройства
