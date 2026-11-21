@@ -564,6 +564,14 @@ async def _save_token(hass: HomeAssistant, token: str) -> None:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    consumers = hass.data.get(DOMAIN, {}).get(DATA_REMOVE_HANDLERS, {})
+    if consumers:
+        _LOGGER.warning(
+            "Cannot unload ESP32 Manager while dependent integrations are active: %s",
+            ", ".join(sorted(consumers)),
+        )
+        return False
+
     if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         return False
 
