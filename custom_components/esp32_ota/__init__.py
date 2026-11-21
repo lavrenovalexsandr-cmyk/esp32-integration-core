@@ -13,6 +13,7 @@ from typing import Any
 
 import voluptuous as vol
 import yaml
+import homeassistant.helpers.config_validation as cv
 from homeassistant.components import frontend, mqtt, panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
@@ -60,6 +61,9 @@ URL_RE = re.compile(
     re.IGNORECASE,
 )
 ID_RE = re.compile(r"^[0-9A-F]{12}$")
+
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
