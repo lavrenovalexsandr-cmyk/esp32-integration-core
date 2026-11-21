@@ -18,3 +18,6 @@ DATA_API = "api"
 DATA_REMOVE_HANDLERS = "remove_handlers"
 EVENT_DEVICE_ADDED = "esp32_ota_device_added"
 EVENT_DEVICE_UPDATED = "esp32_ota_device_updated"
+
+EVENT_DEVICE_REMOVING = "esp32_ota_device_removing"
+EVENT_DEVICE_REMOVED = "esp32_ota_device_removed"
