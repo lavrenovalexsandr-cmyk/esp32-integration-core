@@ -104,6 +104,14 @@ class Esp32OtaManagerPanel extends HTMLElement {
       this._deviceModalMessage = entry
         ? ""
         : "Запись устройства не найдена в реестре Home Assistant.";
+      if (entry) {
+        const nameInput = this.querySelector("#device-name-input");
+        const areaSelect = this.querySelector("#device-area-select");
+        nameInput.value = entry.name_by_user || entry.name || "";
+        areaSelect.innerHTML = '<option value="">Не назначена</option>' +
+          this._areas.map(area => `<option value="${this._escape(area.area_id)}">${this._escape(area.name)}</option>`).join("");
+        areaSelect.value = entry.area_id || "";
+      }
       this._render();
       if (entry) this.querySelector("#device-name-input")?.focus();
     } catch (error) {
@@ -492,16 +500,6 @@ class Esp32OtaManagerPanel extends HTMLElement {
     this.querySelector("#repository-modal-backdrop").hidden = !this._repoModalOpen;
     this.querySelector("#device-modal-backdrop").hidden = !this._deviceModalOpen;
     const editingEntry = this._deviceRegistryEntries.get(this._selected);
-    const areaSelect = this.querySelector("#device-area-select");
-    if (!areaSelect.matches(":focus")) {
-      areaSelect.innerHTML = '<option value="">Не назначена</option>' +
-        this._areas.map(area => `<option value="${this._escape(area.area_id)}">${this._escape(area.name)}</option>`).join("");
-      areaSelect.value = editingEntry?.area_id || "";
-    }
-    const nameInput = this.querySelector("#device-name-input");
-    if (this._deviceModalOpen && !nameInput.matches(":focus")) {
-      nameInput.value = editingEntry?.name_by_user || editingEntry?.name || "";
-    }
     this.querySelector("#device-modal-status").textContent = this._deviceModalMessage;
 
     this.querySelector("#device-status").innerHTML = `
