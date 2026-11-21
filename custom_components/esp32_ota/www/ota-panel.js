@@ -223,7 +223,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
     const url=(this.querySelector("#url")?.value || "").trim();
     const token=this.querySelector("#token")?.value || "";
     if(!this._selected || !url){this._message("action-status","Выберите устройство и заполните URL файла прошивки.");return;}
-    await this._run(async()=>{await this._hass.callService("esp32_ota","update",{device_id:this._selected,url,token});this.querySelector("#token").value="";this._message("action-status","Команда отправлена. Ожидаем статус от ESP32…");});
+    await this._run(async()=>{await this._hass.callService("esp32_ota","update",{device_id:this._selected,url,token,...(this._selectedRepo?{repo_id:this._selectedRepo}:{})});this.querySelector("#token").value="";this._message("action-status","Команда отправлена. Ожидаем статус от ESP32…");});
   }
 
   async _removeDevice() {
