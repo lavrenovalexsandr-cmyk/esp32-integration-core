@@ -587,6 +587,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
 
   _message(id, text) {
     if (id === "control-status") this._controlMessage = text;
+    else if (id === "device-modal-status") this._deviceModalMessage = text;
     else this._actionMessage = text;
     const element = this.querySelector("#" + id);
     if (element) element.textContent = text;
