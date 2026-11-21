@@ -294,7 +294,6 @@ class Esp32OtaManagerPanel extends HTMLElement {
               <button id="save" class="primary">Сохранить токен</button>
             </div>
             <div id="action-status" class="message" role="status" aria-live="polite"></div>
-          </section>
             <button id="manage-repositories" class="secondary full-width" style="margin-top:12px">Управление репозиториями</button>
           </section>
           <section class="card">
