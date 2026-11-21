@@ -17,7 +17,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
-from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
+from homeassistant.components.mqtt.const import MQTT_CONNECTION_STATE
 
 from .repositories import (
     async_register_websocket_commands,
@@ -264,11 +265,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "register_remove_handler": register_remove_handler,
     }
 
+    @callback
+    def mqtt_connection_changed(connected: bool) -> None:
+        """Mark all devices unavailable while the HA MQTT client is disconnected."""
+        if connected:
+            return
+        for device_id in tuple(data[DATA_DEVICES]):
+            hass.async_create_task(
+                update_device(device_id, {
+                    "available": False,
+                    "availability_received": False,
+                })
+            )
+
     data[DATA_UNSUB] = [
         await mqtt.async_subscribe(hass, IDENTITY_TOPIC, identity_message, qos=1),
         await mqtt.async_subscribe(hass, PROFILE_TOPIC.replace("{device_id}", "+"), profile_message, qos=1),
         await mqtt.async_subscribe(hass, "esp32/+/availability", availability_message, qos=1),
         await mqtt.async_subscribe(hass, OTA_STATUS_TOPIC, status_message, qos=1),
+        async_dispatcher_connect(hass, MQTT_CONNECTION_STATE, mqtt_connection_changed),
     ]
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
