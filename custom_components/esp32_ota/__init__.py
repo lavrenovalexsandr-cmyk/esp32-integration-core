@@ -360,13 +360,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         return unsubscribe
 
-    hass.data[DOMAIN][DATA_API] = {
-        "version": API_VERSION,
-        "get_device": get_device_snapshot,
-        "get_devices": get_device_snapshots,
-        "register_remove_handler": register_remove_handler,
-    }
-
     @callback
     def mqtt_connection_changed(connected: bool) -> None:
         """Mark all devices unavailable while the HA MQTT client is disconnected."""
@@ -488,6 +481,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(
         DOMAIN, "remove_device", handle_remove_device, schema=device_schema
     )
+    # Publish the API only after the Manager config entry has completed setup.
+    hass.data[DOMAIN][DATA_API] = {
+        "version": API_VERSION,
+        "get_device": get_device_snapshot,
+        "get_devices": get_device_snapshots,
+        "register_remove_handler": register_remove_handler,
+    }
     return True
 
 
