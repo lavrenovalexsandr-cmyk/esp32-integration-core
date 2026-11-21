@@ -16,6 +16,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
     this._selectedAsset = "";
     this._catalogMessage = "";
     this._releaseMessage = "";
+    this._repoModalOpen = false;
   }
 
   set hass(hass) {
@@ -68,6 +69,27 @@ class Esp32OtaManagerPanel extends HTMLElement {
       this.querySelector("#url").value = asset.download_url;
       this._catalogFilledUrl = asset.download_url;
     }
+  }
+
+  _openRepositoryModal() {
+    this._repoModalOpen = true;
+    this._render();
+    this.querySelector("#repo-url")?.focus();
+  }
+
+  _closeRepositoryModal() {
+    this._repoModalOpen = false;
+    this._render();
+  }
+
+  _newRepository() {
+    this.querySelector("#repo-url").value = "";
+    this.querySelector("#repo-name").value = "";
+    this.querySelector("#repo-token").value = "";
+    this.querySelector("#repo-clear-token").checked = false;
+    this._catalogMessage = "Укажите URL, имя и при необходимости token нового репозитория.";
+    this._render();
+    this.querySelector("#repo-url").focus();
   }
 
   async _saveRepository() {
@@ -123,10 +145,15 @@ class Esp32OtaManagerPanel extends HTMLElement {
     this._render();
     this._loadDeviceNames();
     this._timer = window.setInterval(() => this._loadDeviceNames(), 30000);
+    this._onKeyDown = event => {
+      if (event.key === "Escape" && this._repoModalOpen) this._closeRepositoryModal();
+    };
+    window.addEventListener("keydown", this._onKeyDown);
   }
 
   disconnectedCallback() {
     if (this._timer) window.clearInterval(this._timer);
+    if (this._onKeyDown) window.removeEventListener("keydown", this._onKeyDown);
   }
 
   async _loadDeviceNames() {
@@ -231,8 +258,16 @@ class Esp32OtaManagerPanel extends HTMLElement {
           button:disabled{opacity:.45;cursor:not-allowed}
           .message{min-height:20px;margin-top:12px;font-size:13px;overflow-wrap:anywhere;color:var(--secondary-text-color)}
           .id{font-size:12px;color:var(--secondary-text-color);margin-top:8px}
-          @media(max-width:600px){:host{padding:16px}.card{padding:16px}}
-          @media(max-width:380px){.actions{grid-template-columns:1fr}}
+          .modal-backdrop{position:fixed;inset:0;z-index:1000;background:#0008;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+          .modal-backdrop[hidden]{display:none}
+          .modal{width:min(760px,100%);max-height:min(88vh,900px);overflow:auto;background:var(--card-background-color);color:var(--primary-text-color);border-radius:14px;padding:22px;box-shadow:0 12px 48px #0005}
+          .modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+          .modal-header h2{font-size:20px;font-weight:500;margin:0}
+          .modal-close{min-width:40px;width:40px;padding:6px;font-size:22px}
+          .modal .status{margin:12px 0}
+          .modal .actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+          @media(max-width:600px){:host{padding:16px}.card{padding:16px}.modal-backdrop{padding:10px}.modal{padding:16px;max-height:94vh}}
+          @media(max-width:380px){.actions,.modal .actions{grid-template-columns:1fr}}
         </style>
         <div class="content">
           <h1>ESP32 Manager</h1>
@@ -260,16 +295,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
             </div>
             <div id="action-status" class="message" role="status" aria-live="polite"></div>
           </section>
-          <section class="card" id="repository-card">
-            <h2 style="font-size:18px;font-weight:500;margin:0">Каталог GitHub-репозиториев</h2>
-            <div class="hint">Токены хранятся в Home Assistant и не возвращаются в браузер. Публичным репозиториям token не требуется.</div>
-            <div id="repository-list"></div>
-            <label for="repo-url">URL GitHub-репозитория</label><input id="repo-url" type="url" placeholder="https://github.com/owner/repository">
-            <label for="repo-name">Отображаемое имя</label><input id="repo-name" type="text" maxlength="80" placeholder="Например, Xiaomi BLE Gateway">
-            <label for="repo-token">GitHub token для этого репозитория (необязательно)</label><input id="repo-token" type="password" autocomplete="new-password" placeholder="Пустое поле — сохранить прежний token">
-            <label style="display:flex;align-items:center;gap:8px"><input id="repo-clear-token" type="checkbox" style="width:auto;min-height:0"> Удалить сохранённый token</label>
-            <button id="repo-save" class="primary">Сохранить репозиторий</button>
-            <div id="catalog-status" class="message" role="status" aria-live="polite"></div>
+            <button id="manage-repositories" class="secondary full-width" style="margin-top:12px">Управление репозиториями</button>
           </section>
           <section class="card">
             <h2 style="font-size:18px;font-weight:500;margin:0">Управление устройством</h2>
@@ -281,7 +307,25 @@ class Esp32OtaManagerPanel extends HTMLElement {
             <div class="hint">Полный сброс удаляет пользовательские настройки в соответствии с реализацией прошивки. Успешная отправка команды не подтверждает завершение операции.</div>
             <div id="control-status" class="message" role="status" aria-live="polite"></div>
           </section>
-        </div>`;
+        </div>
+        <div id="repository-modal-backdrop" class="modal-backdrop" hidden>
+          <section class="modal" role="dialog" aria-modal="true" aria-labelledby="repository-modal-title">
+            <div class="modal-header">
+              <h2 id="repository-modal-title">Управление GitHub-репозиториями</h2>
+              <button id="repository-modal-close" class="secondary modal-close" aria-label="Закрыть">×</button>
+            </div>
+            <div class="hint">Каталог хранится локально в Home Assistant. Token каждого репозитория сохраняется отдельно и не возвращается в браузер.</div>
+            <div id="repository-list"></div>
+            <div class="modal-header" style="margin-top:18px"><h3 style="font-size:16px;font-weight:500;margin:0">Добавить или изменить репозиторий</h3><button id="repo-add-new" class="secondary">Новый</button></div>
+            <label for="repo-url">URL GitHub-репозитория</label><input id="repo-url" type="url" placeholder="https://github.com/owner/repository">
+            <label for="repo-name">Отображаемое имя</label><input id="repo-name" type="text" maxlength="80" placeholder="Например, Xiaomi BLE Gateway">
+            <label for="repo-token">GitHub token для этого репозитория (необязательно)</label><input id="repo-token" type="password" autocomplete="new-password" placeholder="Пустое поле — сохранить прежний token">
+            <label style="display:flex;align-items:center;gap:8px"><input id="repo-clear-token" type="checkbox" style="width:auto;min-height:0"> Удалить сохранённый token</label>
+            <button id="repo-save" class="primary">Сохранить репозиторий</button>
+            <div id="catalog-status" class="message" role="status" aria-live="polite"></div>
+          </section>
+        </div>
+      `;
       this._initialized = true;
       this.querySelector("#device").addEventListener("change", event => {
         this._selected = event.target.value;
@@ -289,6 +333,12 @@ class Esp32OtaManagerPanel extends HTMLElement {
       });
       this.querySelector("#save").addEventListener("click", () => this._saveToken());
       this.querySelector("#repo-save").addEventListener("click", () => this._saveRepository());
+      this.querySelector("#manage-repositories").addEventListener("click", () => this._openRepositoryModal());
+      this.querySelector("#repository-modal-close").addEventListener("click", () => this._closeRepositoryModal());
+      this.querySelector("#repository-modal-backdrop").addEventListener("click", event => {
+        if (event.target.id === "repository-modal-backdrop") this._closeRepositoryModal();
+      });
+      this.querySelector("#repo-add-new").addEventListener("click", () => this._newRepository());
       this.querySelector("#repository-select").addEventListener("change", event => this._loadReleases(event.target.value));
       this.querySelector("#release-select").addEventListener("change", event => {
         this._clearCatalogUrl();
@@ -352,6 +402,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
     list.querySelectorAll("[data-test-repo]").forEach(button=>button.addEventListener("click",()=>this._testRepository(button.dataset.testRepo)));
     list.querySelectorAll("[data-remove-repo]").forEach(button=>button.addEventListener("click",()=>this._removeRepository(button.dataset.removeRepo)));
     this.querySelector("#catalog-status").textContent=this._catalogMessage;
+    this.querySelector("#repository-modal-backdrop").hidden = !this._repoModalOpen;
 
     this.querySelector("#device-status").innerHTML = `
       <div class="status ${status.kind}">
