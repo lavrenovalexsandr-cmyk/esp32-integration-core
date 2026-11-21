@@ -26,6 +26,11 @@ from .repositories import (
 )
 
 from .const import (
+    API_VERSION,
+    DATA_API,
+    DATA_REMOVE_HANDLERS,
+    EVENT_DEVICE_ADDED,
+    EVENT_DEVICE_UPDATED,
     DEVICE_IDENTIFIER_NAMESPACE,
     DOMAIN,
     IDENTITY_TOPIC,
@@ -67,6 +72,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "entity_ids": set(), "add_entities": None,
         "ignored_devices": set(entry.options.get("ignored_devices", [])),
     }
+    hass.data[DOMAIN].setdefault(DATA_REMOVE_HANDLERS, {})
     signal = f"{DOMAIN}_{entry.entry_id}_update"
     device_registry = dr.async_get(hass)
 
@@ -109,12 +115,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if device_id in data["ignored_devices"]:
             return
         migrate_gateway_identifier(device_id)
+        is_new = device_id not in data[DATA_DEVICES]
         device = data[DATA_DEVICES].setdefault(device_id, {
             "id": device_id, "name": f"ESP32-{device_id[-6:]}", "model": "ESP32",
-            "available": False,
+            "manufacturer": "Espressif", "sw_version": None,
+            "available": False, "availability_received": False,
+            "identity_received": False, "profile": None,
         })
         device.update(values)
+        device_registry.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={(DEVICE_IDENTIFIER_NAMESPACE, device_id)},
+            name=device.get("name"),
+            manufacturer=device.get("manufacturer", "Espressif"),
+            model=device.get("model", "ESP32"),
+            sw_version=device.get("sw_version"),
+        )
         async_dispatcher_send(hass, signal, device_id)
+        snapshot = get_device_snapshot(device_id)
+        hass.bus.async_fire(
+            EVENT_DEVICE_ADDED if is_new else EVENT_DEVICE_UPDATED,
+            {"device": snapshot},
+        )
         callback = data.get("add_entities")
         if callback and device_id not in data["entity_ids"]:
             from .sensor import Esp32OtaSensor
@@ -127,9 +149,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             device_id = str(payload.get("id", "")).upper()
             name = str(payload.get("name", "")).strip()
             model = str(payload.get("model", "ESP32"))
+            sw_version = payload.get("sw_version")
             if not ID_RE.fullmatch(device_id) or not name:
                 return
-            await update_device(device_id, {"name": name[:64], "model": model[:64]})
+            await update_device(device_id, {
+                "name": name[:64], "model": model[:64],
+                "sw_version": sw_version[:64] if isinstance(sw_version, str) and sw_version.strip() else None,
+                "identity_received": True,
+            })
         except (ValueError, TypeError, AttributeError):
             _LOGGER.warning("Ignoring invalid ESP32 identity message")
 
@@ -141,7 +168,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if payload not in ("online", "offline"):
             _LOGGER.warning("Ignoring invalid ESP32 availability payload")
             return
-        await update_device(match.group(1).upper(), {"available": payload == "online"})
+        await update_device(match.group(1).upper(), {
+            "available": payload == "online", "availability_received": True
+        })
+
+    async def profile_message(msg: mqtt.ReceiveMessage) -> None:
+        """Maintain the latest product profile in the central device registry."""
+        match = re.fullmatch(r"esp32/([0-9A-Fa-f]{12})/device/profile", msg.topic)
+        if not match:
+            return
+        device_id = match.group(1).upper()
+        if not msg.payload:
+            await update_device(device_id, {"profile": None})
+            return
+        try:
+            profile = json.loads(msg.payload)
+        except (ValueError, TypeError):
+            _LOGGER.warning("Ignoring invalid ESP32 profile message")
+            return
+        if not isinstance(profile, dict):
+            _LOGGER.warning("Ignoring invalid ESP32 profile message")
+            return
+        await update_device(device_id, {"profile": profile})
 
     async def status_message(msg: mqtt.ReceiveMessage) -> None:
         match = re.fullmatch(r"esp32/([0-9A-Fa-f]{12})/ota/status", msg.topic)
@@ -160,8 +208,65 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except (ValueError, TypeError):
             _LOGGER.warning("Ignoring invalid OTA status message")
 
+
+    def get_device_snapshot(device_id: str) -> dict[str, Any] | None:
+        """Return a detached, public snapshot of one known ESP32."""
+        device = data[DATA_DEVICES].get(str(device_id).upper())
+        if device is None or not device.get("identity_received"):
+            return None
+        device_id = device["id"]
+        registry_entry = device_registry.async_get_device(
+            identifiers={(DEVICE_IDENTIFIER_NAMESPACE, device_id)}
+        )
+        profile = device.get("profile")
+        profile_copy = dict(profile) if isinstance(profile, dict) else None
+        capabilities = profile_copy.get("capabilities", []) if profile_copy else []
+        operations = profile_copy.get("operations", {}) if profile_copy else {}
+        return {
+            "device_id": device_id,
+            "name": device.get("name"),
+            "name_by_user": registry_entry.name_by_user if registry_entry else None,
+            "manufacturer": device.get("manufacturer", "Espressif"),
+            "model": device.get("model", "ESP32"),
+            "sw_version": device.get("sw_version"),
+            "available": bool(device.get("available", False)),
+            "availability_received": bool(device.get("availability_received", False)),
+            "identity_received": True,
+            "profile": profile_copy,
+            "product_id": profile_copy.get("product_id") if profile_copy else None,
+            "capabilities": list(capabilities) if isinstance(capabilities, list) else [],
+            "operations": dict(operations) if isinstance(operations, dict) else {},
+        }
+
+    def get_device_snapshots() -> tuple[dict[str, Any], ...]:
+        """Return snapshots for all identified ESP32 devices."""
+        return tuple(
+            snapshot
+            for device_id in tuple(data[DATA_DEVICES])
+            if (snapshot := get_device_snapshot(device_id)) is not None
+        )
+
+    def register_remove_handler(integration: str, handler) -> Any:
+        """Register an async cleanup callback for a specialized integration."""
+        handlers = hass.data[DOMAIN][DATA_REMOVE_HANDLERS]
+        handlers[integration] = handler
+
+        def unsubscribe() -> None:
+            if handlers.get(integration) is handler:
+                handlers.pop(integration, None)
+
+        return unsubscribe
+
+    hass.data[DOMAIN][DATA_API] = {
+        "version": API_VERSION,
+        "get_device": get_device_snapshot,
+        "get_devices": get_device_snapshots,
+        "register_remove_handler": register_remove_handler,
+    }
+
     data[DATA_UNSUB] = [
         await mqtt.async_subscribe(hass, IDENTITY_TOPIC, identity_message, qos=1),
+        await mqtt.async_subscribe(hass, PROFILE_TOPIC.replace("{device_id}", "+"), profile_message, qos=1),
         await mqtt.async_subscribe(hass, "esp32/+/availability", availability_message, qos=1),
         await mqtt.async_subscribe(hass, OTA_STATUS_TOPIC, status_message, qos=1),
     ]
