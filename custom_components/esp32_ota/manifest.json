@@ -5,6 +5,7 @@
   "documentation": "https://github.com/lavrenovalexsandr-cmyk/esp32-integration-manager",
   "issue_tracker": "https://github.com/lavrenovalexsandr-cmyk/esp32-integration-manager/issues",
   "dependencies": [
+    "http",
     "mqtt"
   ],
   "codeowners": [
