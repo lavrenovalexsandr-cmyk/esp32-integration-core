@@ -17,6 +17,10 @@ class Esp32OtaManagerPanel extends HTMLElement {
     this._catalogMessage = "";
     this._releaseMessage = "";
     this._repoModalOpen = false;
+    this._deviceModalOpen = false;
+    this._deviceModalMessage = "";
+    this._areas = [];
+    this._deviceRegistryEntries = new Map();
   }
 
   set hass(hass) {
@@ -75,6 +79,62 @@ class Esp32OtaManagerPanel extends HTMLElement {
     this._repoModalOpen = true;
     this._render();
     this.querySelector("#repo-url")?.focus();
+  }
+
+  async _openDeviceModal() {
+    const device = this._devices().find(item => item.id === this._selected);
+    if (!device) return;
+    this._deviceModalOpen = true;
+    this._deviceModalMessage = "Загрузка данных устройства…";
+    this._render();
+    try {
+      const [devices, areas] = await Promise.all([
+        this._hass.connection.sendMessagePromise({type:"config/device_registry/list"}),
+        this._hass.connection.sendMessagePromise({type:"config/area_registry/list"})
+      ]);
+      this._deviceRegistryEntries = new Map();
+      for (const entry of devices) {
+        const identifier = (entry.identifiers || []).find(
+          ([namespace, value]) => namespace === "esp32" && String(value).toUpperCase() === device.id
+        );
+        if (identifier) this._deviceRegistryEntries.set(device.id, entry);
+      }
+      this._areas = areas || [];
+      const entry = this._deviceRegistryEntries.get(device.id);
+      this._deviceModalMessage = entry
+        ? ""
+        : "Запись устройства не найдена в реестре Home Assistant.";
+      this._render();
+      if (entry) this.querySelector("#device-name-input")?.focus();
+    } catch (error) {
+      this._deviceModalMessage = "Не удалось загрузить настройки: " + error;
+      this._render();
+    }
+  }
+
+  _closeDeviceModal() {
+    this._deviceModalOpen = false;
+    this._render();
+  }
+
+  async _saveDeviceSettings() {
+    const device = this._devices().find(item => item.id === this._selected);
+    const entry = device && this._deviceRegistryEntries.get(device.id);
+    if (!device || !entry) return;
+    const name = this.querySelector("#device-name-input")?.value.trim() || "";
+    const areaId = this.querySelector("#device-area-select")?.value || "";
+    await this._run(async () => {
+      await this._hass.connection.sendMessagePromise({
+        type: "config/device_registry/update",
+        device_id: entry.id,
+        name_by_user: name || null,
+        area_id: areaId || null
+      });
+      this._deviceModalMessage = "Настройки устройства сохранены.";
+      await this._loadDeviceNames(true);
+      this._closeDeviceModal();
+      this._message("control-status", "Имя и комната устройства обновлены.");
+    }, "device-modal-status");
   }
 
   _closeRepositoryModal() {
@@ -146,7 +206,8 @@ class Esp32OtaManagerPanel extends HTMLElement {
     this._loadDeviceNames();
     this._timer = window.setInterval(() => this._loadDeviceNames(), 30000);
     this._onKeyDown = event => {
-      if (event.key === "Escape" && this._repoModalOpen) this._closeRepositoryModal();
+      if (event.key === "Escape" && this._deviceModalOpen) this._closeDeviceModal();
+      else if (event.key === "Escape" && this._repoModalOpen) this._closeRepositoryModal();
     };
     window.addEventListener("keydown", this._onKeyDown);
   }
@@ -156,22 +217,25 @@ class Esp32OtaManagerPanel extends HTMLElement {
     if (this._onKeyDown) window.removeEventListener("keydown", this._onKeyDown);
   }
 
-  async _loadDeviceNames() {
+  async _loadDeviceNames(force = false) {
     if (!this._hass || this._deviceNamesPromise ||
-        Date.now() - this._deviceNamesUpdatedAt < 30000) return;
+        (!force && Date.now() - this._deviceNamesUpdatedAt < 30000)) return;
     this._deviceNamesPromise = (async () => {
       try {
         const devices = await this._hass.connection.sendMessagePromise({
           type: "config/device_registry/list"
         });
         this._deviceNames = new Map();
+        this._deviceRegistryEntries = new Map();
         for (const device of devices) {
           const identifier = (device.identifiers || []).find(
             ([namespace]) => namespace === "esp32"
           );
           if (identifier) {
+            const deviceId = String(identifier[1]).toUpperCase();
             const name = device.name_by_user || device.name;
-            if (name) this._deviceNames.set(String(identifier[1]).toUpperCase(), name);
+            if (name) this._deviceNames.set(deviceId, name);
+            this._deviceRegistryEntries.set(deviceId, device);
           }
         }
       } catch (error) {
@@ -303,10 +367,26 @@ class Esp32OtaManagerPanel extends HTMLElement {
             <div class="actions">
               <button id="factory-reset" class="danger">Полный сброс</button>
               <button id="restart" class="primary">Перезагрузка</button>
-              <button id="remove-device" class="danger full-width">Удалить из Home Assistant</button>
+              <button id="remove-device" class="danger">Удалить из Home Assistant</button>
+              <button id="configure-device" class="primary">Настроить</button>
             </div>
             <div class="hint">Полный сброс удаляет пользовательские настройки в соответствии с реализацией прошивки. Успешная отправка команды не подтверждает завершение операции.</div>
             <div id="control-status" class="message" role="status" aria-live="polite"></div>
+          </section>
+        </div>
+        <div id="device-modal-backdrop" class="modal-backdrop" hidden>
+          <section class="modal" role="dialog" aria-modal="true" aria-labelledby="device-modal-title">
+            <div class="modal-header">
+              <h2 id="device-modal-title">Настройка устройства</h2>
+              <button id="device-modal-close" class="secondary modal-close" aria-label="Закрыть">×</button>
+            </div>
+            <div class="hint">Изменения сохраняются в реестре устройств Home Assistant.</div>
+            <label for="device-name-input">Имя устройства</label>
+            <input id="device-name-input" type="text" maxlength="64" placeholder="Имя устройства">
+            <label for="device-area-select">Комната</label>
+            <select id="device-area-select"><option value="">Не назначена</option></select>
+            <button id="device-modal-save" class="primary">Сохранить</button>
+            <div id="device-modal-status" class="message" role="status" aria-live="polite"></div>
           </section>
         </div>
         <div id="repository-modal-backdrop" class="modal-backdrop" hidden>
@@ -335,6 +415,12 @@ class Esp32OtaManagerPanel extends HTMLElement {
       this.querySelector("#save").addEventListener("click", () => this._saveToken());
       this.querySelector("#repo-save").addEventListener("click", () => this._saveRepository());
       this.querySelector("#manage-repositories").addEventListener("click", () => this._openRepositoryModal());
+      this.querySelector("#configure-device").addEventListener("click", () => this._openDeviceModal());
+      this.querySelector("#device-modal-close").addEventListener("click", () => this._closeDeviceModal());
+      this.querySelector("#device-modal-save").addEventListener("click", () => this._saveDeviceSettings());
+      this.querySelector("#device-modal-backdrop").addEventListener("click", event => {
+        if (event.target.id === "device-modal-backdrop") this._closeDeviceModal();
+      });
       this.querySelector("#repository-modal-close").addEventListener("click", () => this._closeRepositoryModal());
       this.querySelector("#repository-modal-backdrop").addEventListener("click", event => {
         if (event.target.id === "repository-modal-backdrop") this._closeRepositoryModal();
@@ -404,6 +490,19 @@ class Esp32OtaManagerPanel extends HTMLElement {
     list.querySelectorAll("[data-remove-repo]").forEach(button=>button.addEventListener("click",()=>this._removeRepository(button.dataset.removeRepo)));
     this.querySelector("#catalog-status").textContent=this._catalogMessage;
     this.querySelector("#repository-modal-backdrop").hidden = !this._repoModalOpen;
+    this.querySelector("#device-modal-backdrop").hidden = !this._deviceModalOpen;
+    const editingEntry = this._deviceRegistryEntries.get(this._selected);
+    const areaSelect = this.querySelector("#device-area-select");
+    if (!areaSelect.matches(":focus")) {
+      areaSelect.innerHTML = '<option value="">Не назначена</option>' +
+        this._areas.map(area => `<option value="${this._escape(area.area_id)}">${this._escape(area.name)}</option>`).join("");
+      areaSelect.value = editingEntry?.area_id || "";
+    }
+    const nameInput = this.querySelector("#device-name-input");
+    if (this._deviceModalOpen && !nameInput.matches(":focus")) {
+      nameInput.value = editingEntry?.name_by_user || editingEntry?.name || "";
+    }
+    this.querySelector("#device-modal-status").textContent = this._deviceModalMessage;
 
     this.querySelector("#device-status").innerHTML = `
       <div class="status ${status.kind}">
@@ -424,6 +523,8 @@ class Esp32OtaManagerPanel extends HTMLElement {
     this.querySelector("#factory-reset").disabled = updateDisabled;
     this.querySelector("#restart").disabled = updateDisabled;
     this.querySelector("#remove-device").disabled = !(selected && !this._busy);
+    this.querySelector("#configure-device").disabled = !(selected && !this._busy);
+    this.querySelector("#device-modal-save").disabled = this._busy || !editingEntry;
     this.querySelector("#device").disabled = !devices.length;
     this.querySelector("#save").disabled = this._busy;
 
