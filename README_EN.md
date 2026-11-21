@@ -138,7 +138,7 @@ The firmware-side OTA receiver is maintained in the ESP32 firmware project: [esp
 
 ESP32 Manager includes a Home Assistant-local GitHub repository catalog. Each entry has a repository URL, display name, and optional per-repository token. Access can be tested, and entries can be edited or removed.
 
-The catalog and its credentials are persisted with Home Assistant's Store helper in `.storage/esp32_ota_repositories`. Tokens are never returned to the browser. Leaving the token field blank while editing preserves the existing token; a separate checkbox removes it.
+The catalog and its credentials are persisted with Home Assistant's Store helper in `.storage/esp32_ota_repositories`. Tokens are never returned to the browser. Home Assistant Store does not encrypt the file contents at rest; access to the Home Assistant configuration directory must be restricted by the host. Leaving the token field blank while editing preserves the existing token; a separate checkbox removes it.
 
 For each OTA operation, the panel lets the administrator choose a repository, release, and `.bin` asset. This selection is temporary and is not assigned permanently to the ESP32. If a release contains multiple `.bin` assets, the required asset must be selected explicitly. Its URL is inserted into the existing editable URL field; manual URL and token entry remain supported.
 
