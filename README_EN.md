@@ -80,7 +80,7 @@ The integration provides the following services in the `esp32_ota` domain:
 
 | Service | Parameters | Description |
 |---|---|---|
-| `esp32_ota.update` | `device_id`, `url`, optional `token` | Start an OTA update on the selected device |
+| `esp32_ota.update` | `device_id`, `url`, optional `token`, `repo_id` | Start OTA; `repo_id` selects credentials from the repository catalog |
 | `esp32_ota.restart` | `device_id` | Request a normal reboot of the selected ESP32 |
 | `esp32_ota.factory_reset` | `device_id` | Request a factory reset of the selected ESP32 |
 | `esp32_ota.save_token` | `token` | Save the GitHub token |
@@ -134,8 +134,18 @@ Successful service execution confirms that the command was published to MQTT; it
 
 The firmware-side OTA receiver is maintained in the ESP32 firmware project: [esp32_mqtt_xiaomi_lywsd03](https://github.com/lavrenovalexsandr-cmyk/esp32-firmware-xiaomi-lywsd03). It downloads firmware over HTTPS, writes the image to the inactive OTA partition, and reports update status over MQTT.
 
-## GitHub token for private releases
+## GitHub repository and release catalog
 
-The **ESP32 OTA** panel accepts an optional GitHub token. The integration can save it under `esp32_ota_github_token` in Home Assistant's `secrets.yaml`. Existing lines and comments are preserved, and the file is written atomically with owner-only permissions. A token entered directly in the update form overrides the saved token for that request.
+ESP32 Manager includes a Home Assistant-local GitHub repository catalog. Each entry has a repository URL, display name, and optional per-repository token. Access can be tested, and entries can be edited or removed.
 
-Tokens are sent only to GitHub API endpoints; they must not be forwarded to external CDN hosts.
+The catalog and its credentials are persisted with Home Assistant's Store helper in `.storage/esp32_ota_repositories`. Tokens are never returned to the browser. Leaving the token field blank while editing preserves the existing token; a separate checkbox removes it.
+
+For each OTA operation, the panel lets the administrator choose a repository, release, and `.bin` asset. This selection is temporary and is not assigned permanently to the ESP32. If a release contains multiple `.bin` assets, the required asset must be selected explicitly. Its URL is inserted into the existing editable URL field; manual URL and token entry remain supported.
+
+The selected repository token is used for GitHub API requests made by the firmware during release asset resolution. The ESP32 follows GitHub's redirect to the CDN without forwarding the Authorization header to that external host.
+
+## Shared token for manual OTA
+
+The existing manual workflow remains available: a shared token can be entered in the OTA form or saved through `esp32_ota.save_token`. This shared token continues to be stored in Home Assistant's `secrets.yaml` as `esp32_ota_github_token`. A token entered directly in the update form takes precedence over the selected repository token and the shared saved token.
+
+Per-repository catalog credentials use Home Assistant's Store and are separate from the shared manual token.
