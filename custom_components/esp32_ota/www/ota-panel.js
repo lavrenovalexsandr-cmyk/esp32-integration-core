@@ -77,6 +77,18 @@ class Esp32OtaManagerPanel extends HTMLElement {
     this._render();
   }
 
+  _editRepository(repoId) {
+    const repo=this._repositories.find(item=>item.id===repoId);
+    if(!repo) return;
+    this.querySelector("#repo-url").value=repo.url;
+    this.querySelector("#repo-name").value=repo.name;
+    this.querySelector("#repo-token").value="";
+    this.querySelector("#repo-clear-token").checked=false;
+    this._catalogMessage="Измените имя или token и сохраните запись. Пустое поле token сохранит текущий.";
+    this.querySelector("#repo-url").scrollIntoView({behavior:"smooth",block:"center"});
+    this._render();
+  }
+
   async _testRepository(repoId) {
     try {
       await this._hass.connection.sendMessagePromise({type:"esp32_ota/repositories/test",repo_id:repoId});
@@ -317,7 +329,8 @@ class Esp32OtaManagerPanel extends HTMLElement {
     assetSelect.disabled=!assets.length;
     this.querySelector("#release-status").textContent=this._releaseMessage;
     const list=this.querySelector("#repository-list");
-    list.innerHTML=this._repositories.length?this._repositories.map(repo=>`<div class="status ${repo.access_ok===true?"success":repo.access_ok===false?"error":"neutral"}" style="display:block"><div class="status-title">${this._escape(repo.name)}</div><div class="detail">${this._escape(repo.id)} · ${repo.has_token?"token сохранён":"без token"} · ${repo.access_ok===true?"доступ проверен":repo.access_ok===false?"ошибка доступа":"не проверялся"}</div>${repo.last_error?`<div class="detail">${this._escape(repo.last_error)}</div>`:""}<div class="actions"><button class="secondary" data-test-repo="${this._escape(repo.id)}">Проверить доступ</button><button class="danger" data-remove-repo="${this._escape(repo.id)}">Удалить</button></div></div>`).join(""):"<div class=\"hint\">Каталог пока пуст.</div>";
+    list.innerHTML=this._repositories.length?this._repositories.map(repo=>`<div class="status ${repo.access_ok===true?"success":repo.access_ok===false?"error":"neutral"}" style="display:block"><div class="status-title">${this._escape(repo.name)}</div><div class="detail">${this._escape(repo.id)} · ${repo.has_token?"token сохранён":"без token"} · ${repo.access_ok===true?"доступ проверен":repo.access_ok===false?"ошибка доступа":"не проверялся"}</div>${repo.last_error?`<div class="detail">${this._escape(repo.last_error)}</div>`:""}<div class="actions"><button class="secondary" data-edit-repo="${this._escape(repo.id)}">Изменить</button><button class="secondary" data-test-repo="${this._escape(repo.id)}">Проверить доступ</button><button class="danger" data-remove-repo="${this._escape(repo.id)}">Удалить</button></div></div>`).join(""):"<div class=\"hint\">Каталог пока пуст.</div>";
+    list.querySelectorAll("[data-edit-repo]").forEach(button=>button.addEventListener("click",()=>this._editRepository(button.dataset.editRepo)));
     list.querySelectorAll("[data-test-repo]").forEach(button=>button.addEventListener("click",()=>this._testRepository(button.dataset.testRepo)));
     list.querySelectorAll("[data-remove-repo]").forEach(button=>button.addEventListener("click",()=>this._removeRepository(button.dataset.removeRepo)));
     this.querySelector("#catalog-status").textContent=this._catalogMessage;
