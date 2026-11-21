@@ -4,6 +4,7 @@ PLATFORMS = ["sensor"]
 IDENTITY_TOPIC = "esp32/+/device/info"
 OTA_STATUS_TOPIC = "esp32/+/ota/status"
 OTA_COMMAND_TOPIC = "esp32/{device_id}/ota/update"
+PROFILE_TOPIC = "esp32/{device_id}/device/profile"
 TOKEN_SECRET_KEY = "esp32_ota_github_token"
 
 PANEL_URL_PATH = "esp32-ota-manager"
