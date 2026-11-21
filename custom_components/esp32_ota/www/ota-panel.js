@@ -21,6 +21,9 @@ class Esp32OtaManagerPanel extends HTMLElement {
     this._deviceModalMessage = "";
     this._areas = [];
     this._deviceRegistryEntries = new Map();
+    this._deviceNameDraft = "";
+    this._deviceAreaDraft = "";
+    this._deviceFormInitialized = false;
   }
 
   set hass(hass) {
@@ -107,10 +110,13 @@ class Esp32OtaManagerPanel extends HTMLElement {
       if (entry) {
         const nameInput = this.querySelector("#device-name-input");
         const areaSelect = this.querySelector("#device-area-select");
-        nameInput.value = entry.name_by_user || entry.name || "";
+        this._deviceNameDraft = entry.name_by_user || entry.name || "";
+        nameInput.value = this._deviceNameDraft;
         areaSelect.innerHTML = '<option value="">Не назначена</option>' +
           this._areas.map(area => `<option value="${this._escape(area.area_id)}">${this._escape(area.name)}</option>`).join("");
-        areaSelect.value = entry.area_id || "";
+        this._deviceAreaDraft = entry.area_id || "";
+        areaSelect.value = this._deviceAreaDraft;
+        this._deviceFormInitialized = true;
       }
       this._render();
       if (entry) this.querySelector("#device-name-input")?.focus();
@@ -122,6 +128,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
 
   _closeDeviceModal() {
     this._deviceModalOpen = false;
+    this._deviceFormInitialized = false;
     this._render();
   }
 
@@ -339,6 +346,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
           .modal-header h2{font-size:20px;font-weight:500;margin:0}
           .modal-close{min-width:40px;width:40px;padding:6px;font-size:22px}
           .modal .status{margin:12px 0}
+          .device-modal-actions{margin-top:20px}
           .modal .actions{grid-template-columns:repeat(2,minmax(0,1fr))}
           @media(max-width:600px){:host{padding:16px}.card{padding:16px}.modal-backdrop{padding:10px}.modal{padding:16px;max-height:94vh}}
           @media(max-width:380px){.actions,.modal .actions{grid-template-columns:1fr}}
@@ -393,7 +401,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
             <input id="device-name-input" type="text" maxlength="64" placeholder="Имя устройства">
             <label for="device-area-select">Комната</label>
             <select id="device-area-select"><option value="">Не назначена</option></select>
-            <button id="device-modal-save" class="primary">Сохранить</button>
+            <div class="device-modal-actions"><button id="device-modal-save" class="primary">Сохранить</button></div>
             <div id="device-modal-status" class="message" role="status" aria-live="polite"></div>
           </section>
         </div>
@@ -426,6 +434,12 @@ class Esp32OtaManagerPanel extends HTMLElement {
       this.querySelector("#configure-device").addEventListener("click", () => this._openDeviceModal());
       this.querySelector("#device-modal-close").addEventListener("click", () => this._closeDeviceModal());
       this.querySelector("#device-modal-save").addEventListener("click", () => this._saveDeviceSettings());
+      this.querySelector("#device-name-input").addEventListener("input", event => {
+        this._deviceNameDraft = event.target.value;
+      });
+      this.querySelector("#device-area-select").addEventListener("change", event => {
+        this._deviceAreaDraft = event.target.value;
+      });
       this.querySelector("#device-modal-backdrop").addEventListener("click", event => {
         if (event.target.id === "device-modal-backdrop") this._closeDeviceModal();
       });
@@ -501,6 +515,10 @@ class Esp32OtaManagerPanel extends HTMLElement {
     this.querySelector("#device-modal-backdrop").hidden = !this._deviceModalOpen;
     const editingEntry = this._deviceRegistryEntries.get(this._selected);
     this.querySelector("#device-modal-status").textContent = this._deviceModalMessage;
+    if (this._deviceModalOpen && this._deviceFormInitialized) {
+      this.querySelector("#device-name-input").value = this._deviceNameDraft;
+      this.querySelector("#device-area-select").value = this._deviceAreaDraft;
+    }
 
     this.querySelector("#device-status").innerHTML = `
       <div class="status ${status.kind}">
