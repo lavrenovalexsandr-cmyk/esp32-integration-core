@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -138,6 +139,20 @@ async def _async_remove_device(
                 entity_registry, device_entry.id, include_disabled_entities=True
             ):
                 entity_registry.async_remove(entity.entity_id)
+
+            # Home Assistant keeps deleted devices in its internal registry and
+            # restores their name/area when the same identifiers (or connections)
+            # are discovered again. Retire the stable ESP32 identity before removal
+            # so a later discovery creates a genuinely new device entry.
+            retired_identifier = (
+                f"{DOMAIN}_removed",
+                uuid.uuid4().hex,
+            )
+            device_registry.async_update_device(
+                device_entry.id,
+                new_identifiers={retired_identifier},
+                new_connections=set(),
+            )
             if remove_registry:
                 device_registry.async_remove_device(device_entry.id)
 
