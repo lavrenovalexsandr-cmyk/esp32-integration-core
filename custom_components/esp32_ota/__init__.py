@@ -19,7 +19,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from .repositories import async_register_websocket_commands, async_setup_repositories\n\nfrom .const import (
+from .repositories import (\n    async_register_websocket_commands,\n    async_setup_repositories,\n    _get_repo,\n)\n\nfrom .const import (
     DEVICE_IDENTIFIER_NAMESPACE,
     DOMAIN,
     IDENTITY_TOPIC,
