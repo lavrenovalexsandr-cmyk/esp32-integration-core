@@ -235,7 +235,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
     if (!this._initialized) {
       this.innerHTML = `
         <style>
-          :host{display:block;padding:24px;color:var(--primary-text-color)}
+          :host{display:block;padding:24px;color:var(--primary-text-color);--esp32-red:#d32f2f;--esp32-blue:#1976d2;--esp32-green:#2e7d32}
           .content{max-width:760px;margin:0 auto}
           h1{font-size:24px;font-weight:500;margin:0 0 8px}
           .intro{color:var(--secondary-text-color);line-height:1.5;margin:0 0 20px}
@@ -243,20 +243,20 @@ class Esp32OtaManagerPanel extends HTMLElement {
           label{display:block;font-size:13px;color:var(--secondary-text-color);margin:14px 0 6px}
           input,select{box-sizing:border-box;width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--outline-color,var(--divider-color));border-radius:8px;background:var(--input-fill-color,var(--card-background-color));color:var(--primary-text-color);font:inherit}
           .status{display:flex;gap:12px;align-items:center;padding:14px;border-radius:10px;background:var(--secondary-background-color);margin:14px 0}
-          .status.success{border-inline-start:4px solid var(--success-color)}
-          .status.error{border-inline-start:4px solid var(--error-color)}
-          .status.active{border-inline-start:4px solid var(--info-color,var(--primary-color))}
+          .status.success{border-inline-start:4px solid var(--esp32-green)}
+          .status.error{border-inline-start:4px solid var(--esp32-red)}
+          .status.active{border-inline-start:4px solid var(--esp32-blue)}
           .status-title{font-weight:600}.detail,.hint{color:var(--secondary-text-color);font-size:13px;margin-top:4px;line-height:1.45}
           .progress{height:8px;background:var(--divider-color);border-radius:8px;overflow:hidden;margin-top:10px}
-          .progress>div{height:100%;background:var(--primary-color);transition:width .2s}
+          .progress>div{height:100%;background:var(--esp32-blue);transition:width .2s}
           .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
           button.full-width{grid-column:1/-1}
-          button{min-height:44px;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer;background:var(--primary-color);color:var(--text-primary-color,white)}
+          button{min-height:44px;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer;background:var(--esp32-blue);color:white}
           button.secondary{background:var(--secondary-background-color);color:var(--primary-text-color)}
-          button.primary{background:var(--primary-color);color:var(--text-primary-color,white)}
-          button.blue{background:var(--info-color,#1976d2);color:white}
-          button.green{background:var(--success-color,#2e7d32);color:white}
-          button.danger{background:var(--error-color);color:white}
+          button.primary{background:var(--esp32-blue);color:white}
+          button.blue{background:var(--esp32-blue);color:white}
+          button.green{background:var(--esp32-green);color:white}
+          button.danger{background:var(--esp32-red);color:white}
           button:disabled{opacity:.45;cursor:not-allowed}
           .message{min-height:20px;margin-top:12px;font-size:13px;overflow-wrap:anywhere;color:var(--secondary-text-color)}
           .id{font-size:12px;color:var(--secondary-text-color);margin-top:8px}
