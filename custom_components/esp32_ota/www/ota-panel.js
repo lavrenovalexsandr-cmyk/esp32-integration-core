@@ -112,7 +112,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
     if(!repo || !window.confirm(`Удалить репозиторий «${repo.name}» из каталога?`)) return;
     try {
       await this._hass.connection.sendMessagePromise({type:"esp32_ota/repositories/remove",repo_id:repoId});
-      if(this._selectedRepo===repoId){this._selectedRepo="";this._releases=[];this._selectedRelease="";}
+      if(this._selectedRepo===repoId){this._clearCatalogUrl();this._selectedRepo="";this._releases=[];this._selectedRelease="";}
       this._catalogMessage="Репозиторий удалён.";
       await this._loadRepositories(true);
     } catch(error) { this._catalogMessage="Ошибка удаления: "+error; }
