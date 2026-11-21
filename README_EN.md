@@ -10,6 +10,14 @@ A Home Assistant custom integration for discovering ESP32 devices over MQTT, dis
 
 The **ESP32 Manager** control panel is included in this integration and appears in the Home Assistant sidebar. No separate Lovelace card or second HACS repository is required.
 
+## ESP32 ecosystem architecture
+
+ESP32 Manager is the central home for cross-project ecosystem contracts: physical device identity, product profiles, MQTT interactions, firmware transitions, and universal OTA management.
+
+- [ESP32 ecosystem architecture: identity, profiles, and firmware management](docs/ECOSYSTEM_ARCHITECTURE_RU.md)
+
+Internal APIs and components of ESP32 Platform Core are documented separately in the [Core repository](https://github.com/lavrenovalexsandr-cmyk/esp32-platform-core).
+
 ## Requirements
 
 - Home Assistant with the official MQTT integration configured and connected.
