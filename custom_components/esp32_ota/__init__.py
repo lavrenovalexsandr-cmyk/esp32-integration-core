@@ -52,6 +52,10 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
+    await async_setup_repositories(hass)
+    if not hass.data[DOMAIN].get("_repo_ws_registered"):
+        async_register_websocket_commands(hass)
+        hass.data[DOMAIN]["_repo_ws_registered"] = True
     data = hass.data[DOMAIN][entry.entry_id] = {
         DATA_DEVICES: {}, DATA_UNSUB: [], "entry": entry,
         "entity_ids": set(), "add_entities": None,
