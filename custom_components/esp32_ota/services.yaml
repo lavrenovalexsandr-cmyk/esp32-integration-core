@@ -14,6 +14,10 @@ update:
       required: false
       selector:
         text:
+    repo_id:
+      required: false
+      selector:
+        text:
 save_token:
   name: Save GitHub token
   description: Save or replace the token in Home Assistant secrets.yaml.
