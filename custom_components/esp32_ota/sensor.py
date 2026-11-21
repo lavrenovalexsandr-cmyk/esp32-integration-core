@@ -17,7 +17,9 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
     data["add_entities"] = async_add_entities
     entities = []
-    for device_id in data["devices"]:
+    for device_id, device in data["devices"].items():
+        if not device.get("identity_received"):
+            continue
         data["entity_ids"].add(device_id)
         entities.append(Esp32OtaSensor(hass, entry, device_id))
     if entities:

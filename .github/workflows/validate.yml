@@ -1,0 +1,23 @@
+name: Validate integration
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Check Python syntax
+        run: python -m compileall -q custom_components/esp32_ota
+      - name: Validate HACS structure
+        uses: hacs/action@main
+        with:
+          category: integration
+          ignore: description topics license
+      - name: Validate Home Assistant manifests
+        uses: home-assistant/actions/hassfest@master
