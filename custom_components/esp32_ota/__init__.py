@@ -33,6 +33,8 @@ from .const import (
     DATA_REMOVE_HANDLERS,
     EVENT_DEVICE_ADDED,
     EVENT_DEVICE_UPDATED,
+    EVENT_DEVICE_REMOVING,
+    EVENT_DEVICE_REMOVED,
     DEVICE_IDENTIFIER_NAMESPACE,
     DOMAIN,
     IDENTITY_TOPIC,
@@ -370,6 +372,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     async def async_remove_device(device_id: str, *, remove_registry: bool) -> None:
         """Run the coordinated removal lifecycle for one physical ESP32."""
+        hass.bus.async_fire(EVENT_DEVICE_REMOVING, {"device_id": device_id})
         device = data[DATA_DEVICES].get(device_id)
         if device is not None and device.get("available"):
             try:
@@ -437,6 +440,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 entry,
                 options={**entry.options, "ignored_devices": sorted(ignored)},
             )
+        hass.bus.async_fire(EVENT_DEVICE_REMOVED, {"device_id": device_id})
         _LOGGER.info(
             "Completed ESP32 %s removal lifecycle (remove_registry=%s)",
             device_id,
@@ -491,6 +495,7 @@ async def async_remove_config_entry_device(
 
     # Reuse the same lifecycle as the explicit service. Home Assistant itself
     # removes the Device Registry entry after this callback returns True.
+    hass.bus.async_fire(EVENT_DEVICE_REMOVING, {"device_id": device_id})
     device = data[DATA_DEVICES].get(device_id)
     if device is not None and device.get("available"):
         try:
@@ -541,6 +546,7 @@ async def async_remove_config_entry_device(
             entry, options={**entry.options, "ignored_devices": sorted(ignored)}
         )
 
+    hass.bus.async_fire(EVENT_DEVICE_REMOVED, {"device_id": device_id})
     _LOGGER.info("Completed ESP32 %s removal lifecycle via Device Registry", device_id)
     return True
 
