@@ -19,7 +19,13 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from .repositories import (\n    async_register_websocket_commands,\n    async_setup_repositories,\n    _get_repo,\n)\n\nfrom .const import (
+from .repositories import (
+    async_register_websocket_commands,
+    async_setup_repositories,
+    _get_repo,
+)
+
+from .const import (
     DEVICE_IDENTIFIER_NAMESPACE,
     DOMAIN,
     IDENTITY_TOPIC,
@@ -189,13 +195,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         device_id = str(call.data["device_id"]).upper()
         url = str(call.data["url"]).strip()
         token = str(call.data.get("token", "")).strip()
+        repo_id = str(call.data.get("repo_id", "")).strip()
         if device_id not in data[DATA_DEVICES]:
             raise HomeAssistantError("ESP32 не обнаружена. Проверьте MQTT и подключение устройства.")
         if not URL_RE.fullmatch(url):
             raise HomeAssistantError("Укажите прямой HTTPS URL файла прошивки с расширением .bin.")
+        catalog_token = ""
+        if repo_id:
+            try:
+                catalog_token = _get_repo(hass, repo_id).get("token", "")
+            except ValueError as err:
+                raise HomeAssistantError(str(err)) from err
         if token:
             await _save_token(hass, token)
-        stored_token = token or await _read_token(hass)
+        stored_token = token or catalog_token or await _read_token(hass)
         command = {"url": url}
         if stored_token:
             command["github_token"] = stored_token
@@ -272,6 +285,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(DOMAIN, "update", handle_update, schema=vol.Schema({
         vol.Required("device_id"): str, vol.Required("url"): str,
         vol.Optional("token", default=""): str,
+        vol.Optional("repo_id"): str,
     }))
     device_schema = vol.Schema({vol.Required("device_id"): str})
     hass.services.async_register(DOMAIN, "restart", handle_restart, schema=device_schema)
