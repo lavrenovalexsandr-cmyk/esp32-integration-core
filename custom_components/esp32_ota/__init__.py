@@ -348,27 +348,65 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def handle_save_token(call: ServiceCall) -> None:
         await _save_token(hass, str(call.data.get("token", "")).strip())
 
-    async def handle_remove_device(call: ServiceCall) -> None:
-        device_id = str(call.data["device_id"]).upper()
-        if not ID_RE.fullmatch(device_id):
-            raise HomeAssistantError("Некорректный ID ESP32.")
+    async def async_remove_device(device_id: str, *, remove_registry: bool) -> None:
+        """Run the coordinated removal lifecycle for one physical ESP32."""
+        device = data[DATA_DEVICES].get(device_id)
+        if device is not None and device.get("available"):
+            try:
+                await mqtt.async_publish(
+                    hass,
+                    f"esp32/{device_id}/system/factory_reset",
+                    "1",
+                    qos=1,
+                    retain=False,
+                )
+            except Exception:
+                _LOGGER.warning(
+                    "Unable to publish Factory Reset for online ESP32 %s; continuing HA cleanup",
+                    device_id,
+                    exc_info=True,
+                )
+
+        handlers = hass.data[DOMAIN].get(DATA_REMOVE_HANDLERS, {})
+        for integration, handler in tuple(handlers.items()):
+            try:
+                await handler(device_id)
+            except Exception:
+                _LOGGER.exception(
+                    "Removal handler for integration %s failed for ESP32 %s",
+                    integration,
+                    device_id,
+                )
+
+        # Clear retained messages owned by ESP32 Manager. No reset request is
+        # queued when the device is offline.
+        for topic in (
+            f"esp32/{device_id}/device/info",
+            f"esp32/{device_id}/device/profile",
+            f"esp32/{device_id}/availability",
+            f"esp32/{device_id}/ota/status",
+        ):
+            try:
+                await mqtt.async_publish(hass, topic, "", qos=1, retain=True)
+            except Exception:
+                _LOGGER.warning(
+                    "Unable to clear retained ESP32 topic %s during removal",
+                    topic,
+                    exc_info=True,
+                )
 
         device_entry = device_registry.async_get_device(
             identifiers={(DEVICE_IDENTIFIER_NAMESPACE, device_id)}
         )
-        if device_entry is None:
-            raise HomeAssistantError("Устройство не найдено в реестре Home Assistant.")
+        if device_entry is not None:
+            entity_registry = er.async_get(hass)
+            for entity in er.async_entries_for_device(
+                entity_registry, device_entry.id, include_disabled_entities=True
+            ):
+                entity_registry.async_remove(entity.entity_id)
+            if remove_registry:
+                device_registry.async_remove_device(device_entry.id)
 
-        # Remove every entity attached to this shared ESP32 gateway, including
-        # entities contributed by other ESP32 integrations.
-        entity_registry = er.async_get(hass)
-        for entity in er.async_entries_for_device(
-            entity_registry, device_entry.id, include_disabled_entities=True
-        ):
-            entity_registry.async_remove(entity.entity_id)
-
-        # Clear runtime state before removing the registry entry. The next MQTT
-        # identity message can then create a fresh entity for the same device.
         data[DATA_DEVICES].pop(device_id, None)
         data["entity_ids"].discard(device_id)
         ignored = set(data["ignored_devices"])
@@ -379,13 +417,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 entry,
                 options={**entry.options, "ignored_devices": sorted(ignored)},
             )
-
-        device_registry.async_remove_device(device_entry.id)
         _LOGGER.info(
-            "Removed ESP32 %s and its Home Assistant device registry entry; "
-            "MQTT rediscovery remains enabled",
+            "Completed ESP32 %s removal lifecycle (remove_registry=%s)",
             device_id,
+            remove_registry,
         )
+
+    async def handle_remove_device(call: ServiceCall) -> None:
+        device_id = str(call.data["device_id"]).upper()
+        if not ID_RE.fullmatch(device_id):
+            raise HomeAssistantError("Некорректный ID ESP32.")
+        if device_registry.async_get_device(
+            identifiers={(DEVICE_IDENTIFIER_NAMESPACE, device_id)}
+        ) is None:
+            raise HomeAssistantError("Устройство не найдено в реестре Home Assistant.")
+        await async_remove_device(device_id, remove_registry=True)
 
     hass.services.async_register(DOMAIN, "update", handle_update, schema=vol.Schema({
         vol.Required("device_id"): str, vol.Required("url"): str,
@@ -406,7 +452,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_remove_config_entry_device(
     hass: HomeAssistant, entry: ConfigEntry, device_entry: dr.DeviceEntry
 ) -> bool:
-    """Allow removing an ESP32 gateway while keeping MQTT rediscovery enabled."""
+    """Coordinate consumer cleanup before Home Assistant removes an ESP32 device."""
     device_id = next(
         (
             identifier[1].upper()
@@ -422,6 +468,42 @@ async def async_remove_config_entry_device(
     data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     if data is None:
         return False
+
+    # Reuse the same lifecycle as the explicit service. Home Assistant itself
+    # removes the Device Registry entry after this callback returns True.
+    device = data[DATA_DEVICES].get(device_id)
+    if device is not None and device.get("available"):
+        try:
+            await mqtt.async_publish(
+                hass, f"esp32/{device_id}/system/factory_reset", "1",
+                qos=1, retain=False,
+            )
+        except Exception:
+            _LOGGER.warning(
+                "Unable to publish Factory Reset for online ESP32 %s; continuing HA cleanup",
+                device_id, exc_info=True,
+            )
+
+    handlers = hass.data[DOMAIN].get(DATA_REMOVE_HANDLERS, {})
+    for integration, handler in tuple(handlers.items()):
+        try:
+            await handler(device_id)
+        except Exception:
+            _LOGGER.exception(
+                "Removal handler for integration %s failed for ESP32 %s",
+                integration, device_id,
+            )
+
+    for topic in (
+        f"esp32/{device_id}/device/info",
+        f"esp32/{device_id}/device/profile",
+        f"esp32/{device_id}/availability",
+        f"esp32/{device_id}/ota/status",
+    ):
+        try:
+            await mqtt.async_publish(hass, topic, "", qos=1, retain=True)
+        except Exception:
+            _LOGGER.warning("Unable to clear retained ESP32 topic %s", topic, exc_info=True)
 
     entity_registry = er.async_get(hass)
     for entity in er.async_entries_for_device(
@@ -439,10 +521,7 @@ async def async_remove_config_entry_device(
             entry, options={**entry.options, "ignored_devices": sorted(ignored)}
         )
 
-    _LOGGER.info(
-        "ESP32 %s removed from Home Assistant; MQTT rediscovery remains enabled",
-        device_id,
-    )
+    _LOGGER.info("Completed ESP32 %s removal lifecycle via Device Registry", device_id)
     return True
 
 async def _read_token(hass: HomeAssistant) -> str:
@@ -505,6 +584,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN]["_panel_registered"] = False
 
     data = hass.data[DOMAIN].pop(entry.entry_id, {})
+    hass.data[DOMAIN].pop(DATA_API, None)
+    hass.data[DOMAIN].get(DATA_REMOVE_HANDLERS, {}).clear()
     for unsub in data.get(DATA_UNSUB, []):
         unsub()
     hass.services.async_remove(DOMAIN, "update")
