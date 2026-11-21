@@ -285,9 +285,16 @@ class Esp32OtaManagerPanel extends HTMLElement {
         const release=this._releases.find(item=>String(item.id)===this._selectedRelease);
         const assets=release?.assets || [];
         this._selectedAsset=assets.length===1?String(assets[0].id):"";
+        this._releaseMessage=assets.length===1?"В релизе найден один .bin-файл.":assets.length>1?"В релизе несколько .bin-файлов. Выберите нужный OTA-файл.":"В релизе нет .bin-файлов.";
         this._render(); this._applySelectedAsset();
       });
-      this.querySelector("#asset-select").addEventListener("change", event => {this._selectedAsset=event.target.value;this._applySelectedAsset();});
+      this.querySelector("#asset-select").addEventListener("change", event => {
+        this._selectedAsset=event.target.value;
+        const release=this._releases.find(item=>String(item.id)===this._selectedRelease);
+        const asset=release?.assets.find(item=>String(item.id)===this._selectedAsset);
+        this._releaseMessage=asset?("Выбран файл: "+asset.name):"Выберите OTA-файл.";
+        this._render(); this._applySelectedAsset();
+      });
       this.querySelector("#update").addEventListener("click", () => this._update());
       this.querySelector("#restart").addEventListener("click", () => this._deviceCommand("restart"));
       this.querySelector("#factory-reset").addEventListener("click", () => this._deviceCommand("factory_reset"));
@@ -349,7 +356,8 @@ class Esp32OtaManagerPanel extends HTMLElement {
     deviceId.hidden = !selected;
 
     const updateDisabled = !(selected?.available && !this._busy);
-    this.querySelector("#update").disabled = updateDisabled;
+    const assetSelectionMissing = Boolean(this._selectedRepo && this._selectedRelease && !this._selectedAsset);
+    this.querySelector("#update").disabled = updateDisabled || assetSelectionMissing;
     this.querySelector("#factory-reset").disabled = updateDisabled;
     this.querySelector("#restart").disabled = updateDisabled;
     this.querySelector("#remove-device").disabled = !(selected && !this._busy);
