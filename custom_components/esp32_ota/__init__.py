@@ -1,6 +1,7 @@
 """ESP32 Manager integration."""
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import os
@@ -116,7 +117,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if device_id in data["ignored_devices"]:
             return
         migrate_gateway_identifier(device_id)
-        is_new = device_id not in data[DATA_DEVICES]
+        was_identified = bool(
+            data[DATA_DEVICES].get(device_id, {}).get("identity_received")
+        )
         device = data[DATA_DEVICES].setdefault(device_id, {
             "id": device_id, "name": f"ESP32-{device_id[-6:]}", "model": "ESP32",
             "manufacturer": "Espressif", "sw_version": None,
@@ -124,22 +127,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "identity_received": False, "profile": None,
         })
         device.update(values)
-        device_registry.async_get_or_create(
-            config_entry_id=entry.entry_id,
-            identifiers={(DEVICE_IDENTIFIER_NAMESPACE, device_id)},
-            name=device.get("name"),
-            manufacturer=device.get("manufacturer", "Espressif"),
-            model=device.get("model", "ESP32"),
-            sw_version=device.get("sw_version"),
-        )
+        if device.get("identity_received"):
+            device_registry.async_get_or_create(
+                config_entry_id=entry.entry_id,
+                identifiers={(DEVICE_IDENTIFIER_NAMESPACE, device_id)},
+                name=device.get("name"),
+                manufacturer=device.get("manufacturer", "Espressif"),
+                model=device.get("model", "ESP32"),
+                sw_version=device.get("sw_version"),
+            )
         async_dispatcher_send(hass, signal, device_id)
         snapshot = get_device_snapshot(device_id)
-        hass.bus.async_fire(
-            EVENT_DEVICE_ADDED if is_new else EVENT_DEVICE_UPDATED,
-            {"device": snapshot},
-        )
+        if snapshot is not None:
+            hass.bus.async_fire(
+                EVENT_DEVICE_ADDED if not was_identified else EVENT_DEVICE_UPDATED,
+                {"device": snapshot},
+            )
         callback = data.get("add_entities")
-        if callback and device_id not in data["entity_ids"]:
+        if callback and device.get("identity_received") and device_id not in data["entity_ids"]:
             from .sensor import Esp32OtaSensor
             data["entity_ids"].add(device_id)
             callback([Esp32OtaSensor(hass, entry, device_id)])
@@ -220,7 +225,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             identifiers={(DEVICE_IDENTIFIER_NAMESPACE, device_id)}
         )
         profile = device.get("profile")
-        profile_copy = dict(profile) if isinstance(profile, dict) else None
+        profile_copy = copy.deepcopy(profile) if isinstance(profile, dict) else None
         capabilities = profile_copy.get("capabilities", []) if profile_copy else []
         operations = profile_copy.get("operations", {}) if profile_copy else {}
         return {
