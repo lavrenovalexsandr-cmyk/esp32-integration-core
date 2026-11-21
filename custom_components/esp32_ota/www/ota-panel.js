@@ -39,7 +39,14 @@ class Esp32OtaManagerPanel extends HTMLElement {
     this._render();
   }
 
+  _clearCatalogUrl() {
+    const input=this.querySelector("#url");
+    if(input && this._catalogFilledUrl && input.value===this._catalogFilledUrl) input.value="";
+    this._catalogFilledUrl="";
+  }
+
   async _loadReleases(repoId) {
+    this._clearCatalogUrl();
     this._selectedRepo = repoId;
     this._selectedRelease = "";
     this._selectedAsset = "";
@@ -57,7 +64,10 @@ class Esp32OtaManagerPanel extends HTMLElement {
   _applySelectedAsset() {
     const release = this._releases.find(item => String(item.id) === this._selectedRelease);
     const asset = release?.assets.find(item => String(item.id) === this._selectedAsset);
-    if (asset?.download_url) this.querySelector("#url").value = asset.download_url;
+    if (asset?.download_url) {
+      this.querySelector("#url").value = asset.download_url;
+      this._catalogFilledUrl = asset.download_url;
+    }
   }
 
   async _saveRepository() {
@@ -281,6 +291,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
       this.querySelector("#repo-save").addEventListener("click", () => this._saveRepository());
       this.querySelector("#repository-select").addEventListener("change", event => this._loadReleases(event.target.value));
       this.querySelector("#release-select").addEventListener("change", event => {
+        this._clearCatalogUrl();
         this._selectedRelease=event.target.value;
         const release=this._releases.find(item=>String(item.id)===this._selectedRelease);
         const assets=release?.assets || [];
