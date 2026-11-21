@@ -24,6 +24,7 @@ from .const import (
     DOMAIN,
     IDENTITY_TOPIC,
     OTA_COMMAND_TOPIC,
+    PROFILE_TOPIC,
     OTA_STATUS_TOPIC,
     PLATFORMS,
     TOKEN_SECRET_KEY,
@@ -194,6 +195,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         command = {"url": url}
         if stored_token:
             command["github_token"] = stored_token
+        # Remove the previous firmware profile before starting OTA. The
+        # empty retained payload is an MQTT tombstone; product integrations
+        # must treat it as "profile unknown" until the new firmware reports.
+        await mqtt.async_publish(
+            hass, PROFILE_TOPIC.format(device_id=device_id),
+            "", qos=1, retain=True
+        )
         await mqtt.async_publish(
             hass, OTA_COMMAND_TOPIC.format(device_id=device_id),
             json.dumps(command, separators=(",", ":")), qos=1, retain=False
