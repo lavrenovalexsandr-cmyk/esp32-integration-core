@@ -31,7 +31,7 @@ class Esp32OtaManagerPanel extends HTMLElement {
       this._repositories = await this._hass.connection.sendMessagePromise({type:"esp32_ota/repositories/list"});
       this._repositoriesLoaded = true;
       if (!this._repositories.some(repo => repo.id === this._selectedRepo)) {
-        this._selectedRepo = this._repositories[0]?.id || "";
+        this._selectedRepo = "";
         this._releases = [];
         this._selectedRelease = "";
       }
